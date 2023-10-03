@@ -68,14 +68,14 @@ int main()
         for (auto c : commands) {
             v << c->name << " ";
             if (c->is_running()) {
-                v << WebCFace::ViewComponents::button("stop", c->terminate);
-                // .bgColor(WebCFace::ViewColor::orange);
+                v << WebCFace::ViewComponents::button("stop", c->terminate)
+                .bgColor(WebCFace::ViewColor::orange);
             } else {
                 v << WebCFace::ViewComponents::button("start", c->start);
                 if (c->exit_status != 0) {
                     v << WebCFace::ViewComponents::text(
-                        "(" + std::to_string(c->exit_status) + ") ");
-                    // .textColor(WebCFace::ViewColor::red);
+                        "(" + std::to_string(c->exit_status) + ") ")
+                    .textColor(WebCFace::ViewColor::red);
                 }
             }
             v << std::endl;
