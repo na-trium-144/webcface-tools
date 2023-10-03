@@ -1,0 +1,6 @@
+[submodule "external/tiny-process-library"]
+	path = external/tiny-process-library
+	url = https://gitlab.com/eidheim/tiny-process-library.git
+[submodule "external/tomlplusplus"]
+	path = external/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git
