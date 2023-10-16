@@ -5,6 +5,7 @@ project(webcface-tools
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
+add_compile_definitions(TOOLS_VERSION="${PROJECT_VERSION}")
 find_package(webcface CONFIG REQUIRED)
 
 add_subdirectory(external/tiny-process-library)

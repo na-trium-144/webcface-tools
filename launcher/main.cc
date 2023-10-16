@@ -4,12 +4,25 @@
 #include <string>
 #include "launcher.h"
 
-#define TOOLS_VERSION "1.0.1"
 #define DEFAULT_TOML "webcface-launcher.toml"
 
 int main(int argc, char **argv) {
     try {
-        TCLAP::CmdLine cmd("WebCFace Launcher", ' ', TOOLS_VERSION);
+        TCLAP::CmdLine cmd(
+            "WebCFace Launcher\n"
+            "\n"
+            // 全角24文字でtclapに勝手に改行されちゃう
+            "設定ファイルにしたがってコマンドの実行、停止が\n"
+            "できる画面を提供します。\n"
+            "tomlファイルに設定を記述し、引数に指定して起動\n"
+            "します。\n"
+            "ファイル名が webcface-starter.toml の場合は指定を\n"
+            "省略できます。\n"
+            "\n"
+            "サーバーのアドレス、ポート、このクライアントの\n"
+            "名前はtomlファイル内のinitセクションに記述する\n"
+            "こともできます。\n",
+            ' ', TOOLS_VERSION);
         TCLAP::ValueArg<std::string> hostArg(
             "a", "address", "Server address (default: 127.0.0.1)", false, "",
             "address");
@@ -36,7 +49,7 @@ int main(int argc, char **argv) {
         }
         std::string wcli_host = hostArg.getValue();
         if (wcli_host.empty()) {
-            wcli_host = config["init"]["host"].value_or("127.0.0.1");
+            wcli_host = config["init"]["address"].value_or("127.0.0.1");
         }
         int wcli_port = portArg.getValue();
         if (wcli_port == 0) {
