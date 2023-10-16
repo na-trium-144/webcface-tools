@@ -8,10 +8,12 @@
 
 int main(int argc, char **argv) {
     try {
-        TCLAP::CmdLine cmd("\n"
-                           // 全角24文字でtclapに勝手に改行されちゃう
-                           ,
-                           ' ', TOOLS_VERSION);
+        TCLAP::CmdLine cmd( // 全角24文字でtclapに勝手に改行されちゃう
+            "WebCFaceサーバーにデータを送信できます。\n"
+            "標準入力からデータを読み込み、改行するごとに\n"
+            "送信されます。\n"
+            "logデータの場合、levelはすべてinfoになります。",
+            ' ', TOOLS_VERSION);
         TCLAP::ValueArg<std::string> hostArg(
             "a", "address", "Server address (default: 127.0.0.1)", false,
             "127.0.0.1", "address");
