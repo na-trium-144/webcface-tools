@@ -8,21 +8,20 @@
 
 int main(int argc, char **argv) {
     try {
-        TCLAP::CmdLine cmd(
-            "WebCFace Launcher\n"
-            "\n"
-            // 全角24文字でtclapに勝手に改行されちゃう
-            "設定ファイルにしたがってコマンドの実行、停止が\n"
-            "できる画面を提供します。\n"
-            "tomlファイルに設定を記述し、引数に指定して起動\n"
-            "します。\n"
-            "ファイル名が webcface-starter.toml の場合は指定を\n"
-            "省略できます。\n"
-            "\n"
-            "サーバーのアドレス、ポート、このクライアントの\n"
-            "名前はtomlファイル内のinitセクションに記述する\n"
-            "こともできます。\n",
-            ' ', TOOLS_VERSION);
+        TCLAP::CmdLine cmd("WebCFace Launcher\n"
+                           "\n"
+                           // 全角24文字でtclapに勝手に改行されちゃう
+                           "設定ファイルにしたがってコマンドの実行、停止が\n"
+                           "できる画面を提供します。\n"
+                           "tomlファイルに設定を記述し、引数に指定して起動\n"
+                           "します。\n"
+                           "ファイル名が webcface-starter.toml の場合は指定を\n"
+                           "省略できます。\n"
+                           "\n"
+                           "サーバーのアドレス、ポート、このクライアントの\n"
+                           "名前はtomlファイル内のinitセクションに記述する\n"
+                           "こともできます。\n",
+                           ' ', TOOLS_VERSION);
         TCLAP::ValueArg<std::string> hostArg(
             "a", "address", "Server address (default: 127.0.0.1)", false, "",
             "address");

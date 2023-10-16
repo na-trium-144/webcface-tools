@@ -10,7 +10,7 @@
 #include <iostream>
 #include "command.h"
 
-void launcher(WebCFace::Client &wcli, toml::parse_result &config){
+void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
     std::vector<std::shared_ptr<Command>> commands;
 
     auto config_commands = config["command"].as_array();

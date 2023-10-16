@@ -4,22 +4,21 @@
 #include <memory>
 
 struct Command {
-    Command(const Command&) = delete;
-    Command& operator=(const Command&) = delete;
-    Command(WebCFace::Client& wcli, const std::string& name, const std::string& exec,
-        const std::string& workdir)
-        : name(name), exec(exec), workdir(workdir)
-    {
-        start
-            = wcli.func(name + "_start")
-                  .set([this] {
-                      if (is_running()) {
-                          throw std::runtime_error("already started");
-                      } else {
-                          p = std::make_shared<TinyProcessLib::Process>(this->exec, this->workdir);
-                      }
-                  })
-                  .hidden(true);
+    Command(const Command &) = delete;
+    Command &operator=(const Command &) = delete;
+    Command(WebCFace::Client &wcli, const std::string &name,
+            const std::string &exec, const std::string &workdir)
+        : name(name), exec(exec), workdir(workdir) {
+        start = wcli.func(name + "_start")
+                    .set([this] {
+                        if (is_running()) {
+                            throw std::runtime_error("already started");
+                        } else {
+                            p = std::make_shared<TinyProcessLib::Process>(
+                                this->exec, this->workdir);
+                        }
+                    })
+                    .hidden(true);
         terminate = wcli.func(name + "_terminate")
                         .set([this] {
                             if (p) {
