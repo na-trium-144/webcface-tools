@@ -1,14 +1,14 @@
 #include <webcface/webcface.h>
 #include <tclap/CmdLine.h>
 #include <string>
+#include <vector>
 #include <thread>
 #include <chrono>
 #include <iostream>
 
 int main(int argc, char **argv) {
     try {
-        TCLAP::CmdLine cmd("WebCFace Send\n"
-                           "\n"
+        TCLAP::CmdLine cmd("\n"
                            // 全角24文字でtclapに勝手に改行されちゃう
                            ,
                            ' ', TOOLS_VERSION);
@@ -25,8 +25,15 @@ int main(int argc, char **argv) {
                                              "webcface-send", "string");
         cmd.add(nameArg);
 
+        std::vector<std::string> dataTypes = {"value", "text", "log"};
+        TCLAP::ValuesConstraint<std::string> dataTypesConstraint(dataTypes);
+        TCLAP::ValueArg<std::string> dataTypeArg(
+            "t", "type", "Message type (default: value)", false, "value",
+            &dataTypesConstraint);
+        cmd.add(dataTypeArg);
+
         TCLAP::UnlabeledValueArg<std::string> fieldArg(
-            "field", "Field name to send", true, "", "string");
+            "field", "Field name to send", false, "data", "string");
         cmd.add(fieldArg);
 
         cmd.parse(argc, argv);
@@ -35,9 +42,19 @@ int main(int argc, char **argv) {
                               portArg.getValue());
 
         while (!std::cin.eof()) {
-            static double val;
-            std::cin >> val;
-            wcli.value(fieldArg.getValue()).set(val);
+            if (dataTypeArg.getValue() == "value") {
+                static double val;
+                std::cin >> val;
+                wcli.value(fieldArg.getValue()).set(val);
+            } else if (dataTypeArg.getValue() == "text") {
+                static std::string val;
+                std::getline(std::cin, val);
+                wcli.text(fieldArg.getValue()).set(val);
+            } else if (dataTypeArg.getValue() == "log") {
+                static std::string val;
+                std::getline(std::cin, val);
+                wcli.logger()->info(val);
+            }
             wcli.sync();
         }
         if (!wcli.connected()) {
