@@ -22,6 +22,13 @@ target_link_libraries(webcface-launcher
 )
 install(TARGETS webcface-launcher RUNTIME DESTINATION bin)
 
+add_executable(webcface-send send/main.cc)
+target_link_libraries(webcface-send
+    webcface::webcface
+    tclap
+)
+install(TARGETS webcface-send RUNTIME DESTINATION bin)
+
 set(CPACK_VERBATIM_VARIABLES yes)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_PACKAGE_CONTACT "nakak_u21@yahoo.co.jp")
