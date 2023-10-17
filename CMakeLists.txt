@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(webcface-tools
     LANGUAGES CXX
-    VERSION 1.0.0
+    VERSION 1.1.0
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
@@ -43,4 +43,3 @@ set(CPACK_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
 )
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
 include(CPack)
-
