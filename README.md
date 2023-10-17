@@ -4,6 +4,8 @@
 
 それぞれ`-h`オプションでコマンドライン引数や使い方を確認できます。
 
+WebCFaceのREADMEにしたがって、WebCFaceといっしょにインストールしてください。
+
 # webcface-send
 
 コマンドラインからwebcfaceに値を送信します。
