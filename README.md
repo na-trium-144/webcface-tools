@@ -1,10 +1,13 @@
 # webcface-tools
+[![release](https://img.shields.io/github/v/release/na-trium-144/webcface-tools)](https://github.com/na-trium-144/webcface-tools/releases)
 
 [WebCFace](https://github.com/na-trium-144/webcface)のクライアントとなるプログラム群です。
 
 それぞれ`-h`オプションでコマンドライン引数や使い方を確認できます。
 
 WebCFaceのREADMEにしたがって、WebCFaceといっしょにインストールしてください。
+
+Ubuntu,MacOSでビルドできることを確認済み ~~Windowsは知りません~~
 
 # webcface-send
 
@@ -14,14 +17,19 @@ webcface-send hoge
 ```
 のように実行し、標準入力に値を入れると送信されます。
 
+オプションで送信するデータの種類をvalue(デフォルト)、text、logから選べます。
+別コマンドの出力をパイプで渡して、webcfaceで見るという使い方ができます
+
 # webcface-launcher
 
-設定ファイルにしたがってコマンドの実行、停止ができる画面を提供します。
+設定ファイルにしたがってコマンドの実行、停止ができるviewを提供します。
 tomlファイルに設定を記述し、
 ```sh
 webcface-launcher ./webcface-launcher.toml
 ```
 のように指定して起動します。
+
+serverとlauncherだけを常時起動しておき、webcfaceでリモートに操作するという使い方ができます
 
 tomlファイルの例
 ```toml
