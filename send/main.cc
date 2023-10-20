@@ -1,5 +1,5 @@
 #include <webcface/webcface.h>
-#include <tclap/CmdLine.h>
+#include <CLI/CLI.hpp>
 #include <string>
 #include <vector>
 #include <thread>
@@ -7,71 +7,48 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    try {
-        TCLAP::CmdLine cmd( // 全角24文字でtclapに勝手に改行されちゃう
-            "WebCFaceサーバーにデータを送信できます。\n"
-            "標準入力からデータを読み込み、改行するごとに\n"
-            "送信されます。\n"
-            "logデータの場合、levelはすべてinfoになります。",
-            ' ', TOOLS_VERSION);
-        TCLAP::ValueArg<std::string> hostArg(
-            "a", "address", "Server address (default: 127.0.0.1)", false,
-            "127.0.0.1", "address");
-        cmd.add(hostArg);
-        TCLAP::ValueArg<int> portArg(
-            "p", "port", "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")",
-            false, WEBCFACE_DEFAULT_PORT, "number");
-        cmd.add(portArg);
-        TCLAP::ValueArg<std::string> nameArg("m", "member_name",
-                                             "Client member name", false,
-                                             "webcface-send", "string");
-        cmd.add(nameArg);
+    CLI::App app{"WebCFace Send " TOOLS_VERSION};
+    app.allow_windows_style_options();
 
-        std::vector<std::string> dataTypes = {"value", "text", "log"};
-        TCLAP::ValuesConstraint<std::string> dataTypesConstraint(dataTypes);
-        TCLAP::ValueArg<std::string> dataTypeArg(
-            "t", "type", "Message type (default: value)", false, "value",
-            &dataTypesConstraint);
-        cmd.add(dataTypeArg);
+    std::string wcli_host = "127.0.0.1", wcli_name = "webcface-send";
+    int wcli_port = WEBCFACE_DEFAULT_PORT;
+    app.add_option("-a,--address", wcli_host,
+                   "Server address (default: 127.0.0.1)");
+    app.add_option("-p,--port", wcli_port,
+                   "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
+    app.add_option("-m,--member", wcli_name, "Client member name");
 
-        TCLAP::UnlabeledValueArg<std::string> fieldArg(
-            "field", "Field name to send", false, "data", "string");
-        cmd.add(fieldArg);
+    std::string data_type = "value", field = "data";
+    app.add_option("-t,--type", data_type,
+                   "Message type (default: value)")
+        ->check(CLI::IsMember({"value", "text", "log"}, CLI::ignore_case));
+    app.add_option("field", field, "Field name to send (default: data)");
 
-        cmd.parse(argc, argv);
+    CLI11_PARSE(app, argc, argv);
 
-        WebCFace::Client wcli(nameArg.getValue(), hostArg.getValue(),
-                              portArg.getValue());
+    WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
 
-        while (!std::cin.eof()) {
-            if (dataTypeArg.getValue() == "value") {
-                static double val;
-                std::cin >> val;
-                wcli.value(fieldArg.getValue()).set(val);
-            } else if (dataTypeArg.getValue() == "text") {
-                static std::string val;
-                std::getline(std::cin, val);
-                wcli.text(fieldArg.getValue()).set(val);
-            } else if (dataTypeArg.getValue() == "log") {
-                static std::string val;
-                std::getline(std::cin, val);
-                wcli.logger()->info(val);
-            }
-            wcli.sync();
+    while (!std::cin.eof()) {
+        if (data_type == "value") {
+            static double val;
+            std::cin >> val;
+            wcli.value(field).set(val);
+        } else if (data_type == "text") {
+            static std::string val;
+            std::getline(std::cin, val);
+            wcli.text(field).set(val);
+        } else if (data_type == "log") {
+            static std::string val;
+            std::getline(std::cin, val);
+            wcli.logger()->info(val);
         }
-        if (!wcli.connected()) {
-            while (!wcli.connected()) {
-                std::this_thread::yield();
-            }
-            wcli.sync();
+        wcli.sync();
+    }
+    if (!wcli.connected()) {
+        while (!wcli.connected()) {
+            std::this_thread::yield();
         }
-
-        return 0;
-    } catch (TCLAP::ArgException &e) {
-        std::cerr << "error: " << e.error() << " for arg " << e.argId()
-                  << std::endl;
-        return 1;
+        wcli.sync();
     }
 
-    // todo: オプションで変えられるようにする
 }

@@ -1,67 +1,42 @@
 #include <webcface/webcface.h>
 #include <toml++/toml.hpp>
-#include <tclap/CmdLine.h>
+#include <CLI/CLI.hpp>
 #include <string>
 #include "launcher.h"
 
 #define DEFAULT_TOML "webcface-launcher.toml"
 
 int main(int argc, char **argv) {
-    try {
-        TCLAP::CmdLine cmd( // 全角24文字でtclapに勝手に改行されちゃう
-            "設定ファイルにしたがってコマンドの実行、停止が\n"
-            "できる画面を提供します。\n"
-            "tomlファイルに設定を記述し、引数に指定して起動\n"
-            "します。\n"
-            "ファイル名が webcface-starter.toml の場合は指定を\n"
-            "省略できます。\n"
-            "\n"
-            "サーバーのアドレス、ポート、このクライアントの\n"
-            "名前はtomlファイル内のinitセクションに記述する\n"
-            "こともできます。\n",
-            ' ', TOOLS_VERSION);
-        TCLAP::ValueArg<std::string> hostArg(
-            "a", "address", "Server address (default: 127.0.0.1)", false, "",
-            "address");
-        cmd.add(hostArg);
-        TCLAP::ValueArg<int> portArg(
-            "p", "port", "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")",
-            false, 0, "number");
-        cmd.add(portArg);
-        TCLAP::ValueArg<std::string> nameArg(
-            "m", "member_name", "Client member name", false, "", "string");
-        cmd.add(nameArg);
+    CLI::App app{"WebCFace Launcher " TOOLS_VERSION};
+    app.allow_windows_style_options();
 
-        TCLAP::UnlabeledValueArg<std::string> tomlPathArg(
-            "config_path", "Path of config file (default: " DEFAULT_TOML ")",
-            false, DEFAULT_TOML, "path");
-        cmd.add(tomlPathArg);
+    std::string wcli_host = "", wcli_name = "";
+    int wcli_port = 0;
+    app.add_option("-a,--address", wcli_host,
+                   "Server address (default: 127.0.0.1)");
+    app.add_option("-p,--port", wcli_port,
+                   "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
+    app.add_option("-m,--member", wcli_name, "Client member name");
 
-        cmd.parse(argc, argv);
+    std::string toml_path = DEFAULT_TOML;
+    auto config_opt =
+        app.add_option("config_path", toml_path,
+                       "Path of config file (default: " DEFAULT_TOML ")")
+            ->check(CLI::ExistingFile);
 
-        auto config = toml::parse_file(tomlPathArg.getValue());
-        std::string wcli_name = nameArg.getValue();
-        if (wcli_name.empty()) {
-            wcli_name = config["init"]["name"].value_or("webcface-launcher");
-        }
-        std::string wcli_host = hostArg.getValue();
-        if (wcli_host.empty()) {
-            wcli_host = config["init"]["address"].value_or("127.0.0.1");
-        }
-        int wcli_port = portArg.getValue();
-        if (wcli_port == 0) {
-            wcli_port = config["init"]["port"].value_or(WEBCFACE_DEFAULT_PORT);
-        }
-        WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
+    CLI11_PARSE(app, argc, argv);
 
-        launcher(wcli, config);
-
-        return 0;
-    } catch (TCLAP::ArgException &e) {
-        std::cerr << "error: " << e.error() << " for arg " << e.argId()
-                  << std::endl;
-        return 1;
+    auto config = toml::parse_file(toml_path);
+    if (wcli_name.empty()) {
+        wcli_name = config["init"]["name"].value_or("webcface-launcher");
     }
+    if (wcli_host.empty()) {
+        wcli_host = config["init"]["address"].value_or("127.0.0.1");
+    }
+    if (wcli_port == 0) {
+        wcli_port = config["init"]["port"].value_or(WEBCFACE_DEFAULT_PORT);
+    }
+    WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
 
-    // todo: オプションで変えられるようにする
+    launcher(wcli, config);
 }
