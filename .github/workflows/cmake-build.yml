@@ -13,20 +13,21 @@ env:
 
 jobs:
   build-amd64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: install latest webcface
       run: |
         curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep amd64 | sed 's/"//g' | awk '{print $2}')
+        sudo apt-get update
         sudo apt-get install -y ./*.deb
         rm ./*.deb
     - uses: actions/checkout@v4
       with:
         submodules: "recursive"
     - name: Configure CMake
-      env:
-        CC: gcc-10
-        CXX: g++-10
+      # env:
+      #   CC: gcc-10
+      #   CXX: g++-10
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -40,7 +41,7 @@ jobs:
   
   build-multiarch:
     # The host should always be linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
 
     # Run steps on a matrix of 4 arch/distro combinations
@@ -49,10 +50,10 @@ jobs:
         include:
           - arch: aarch64
             arch_name: arm64
-            distro: ubuntu20.04
+            distro: ubuntu22.04
           - arch: armv7
             arch_name: armhf
-            distro: ubuntu20.04
+            distro: ubuntu22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,11 +91,13 @@ jobs:
           # no secrets are present in the container state or logs.
           install: |
             apt-get update -q -y
-            apt-get install -q -y ca-certificates gpg wget
-            wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc --no-check-certificate | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-            apt-get update -q -y
-            apt-get install -q -y build-essential cmake file curl gcc-10 g++-10
+            apt-get install -q -y build-essential cmake file curl
+
+          # apt-get install -q -y ca-certificates gpg wget
+          # wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc --no-check-certificate | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          # echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          # apt-get update -q -y
+          # apt-get install -q -y build-essential cmake file curl gcc-10 g++-10
 
           # Produce a binary artifact and place it in the mounted volume
           run: |
@@ -102,7 +105,7 @@ jobs:
             curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep ${{matrix.arch_name}} | sed 's/"//g' | awk '{print $2}')
             apt-get install -y ./*.deb
             rm ./*.deb
-            CC=gcc-10 CXX=g++-10 cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+            cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
             cmake --build build --config ${{env.BUILD_TYPE}}
             cd build
             cpack -G DEB
