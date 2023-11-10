@@ -28,6 +28,14 @@ target_link_libraries(webcface-send
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
 
+add_executable(webcface-viewer viewer/main.cc viewer/display.cc)
+target_link_libraries(webcface-viewer
+    webcface::webcface
+    CLI11
+    ncurses
+)
+install(TARGETS webcface-viewer RUNTIME DESTINATION bin)
+
 set(CPACK_VERBATIM_VARIABLES yes)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_PACKAGE_CONTACT "nakak_u21@yahoo.co.jp")
