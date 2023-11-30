@@ -19,9 +19,10 @@ int main(int argc, char **argv) {
                    "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
     app.add_option("-m,--member", wcli_name, "Client member name");
 
+    bool echo = false;
+    app.add_flag("-e,--echo", echo, "Echo input to stdout");
     std::string data_type = "value", field = "data";
-    app.add_option("-t,--type", data_type,
-                   "Message type (default: value)")
+    app.add_option("-t,--type", data_type, "Message type (default: value)")
         ->check(CLI::IsMember({"value", "text", "log"}, CLI::ignore_case));
     app.add_option("field", field, "Field name to send (default: data)");
 
@@ -29,19 +30,30 @@ int main(int argc, char **argv) {
 
     WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
 
+    auto logger =
+        std::make_shared<spdlog::logger>("webcface-send", wcli.loggerSink());
     while (!std::cin.eof()) {
+        std::string input;
+        std::getline(std::cin, input);
         if (data_type == "value") {
-            static double val;
-            std::cin >> val;
-            wcli.value(field).set(val);
+            try {
+                wcli.value(field).set(std::stod(input));
+                if (echo) {
+                    std::cout << input << std::endl;
+                }
+            } catch (const std::invalid_argument &) {
+            } catch (const std::out_of_range &) {
+            }
         } else if (data_type == "text") {
-            static std::string val;
-            std::getline(std::cin, val);
-            wcli.text(field).set(val);
+            wcli.text(field).set(input);
+            if (echo) {
+                std::cout << input << std::endl;
+            }
         } else if (data_type == "log") {
-            static std::string val;
-            std::getline(std::cin, val);
-            wcli.logger()->info(val);
+            logger->info(input);
+            if (echo) {
+                std::cout << input << std::endl;
+            }
         }
         wcli.sync();
     }
@@ -51,5 +63,4 @@ int main(int argc, char **argv) {
         }
         wcli.sync();
     }
-
 }
