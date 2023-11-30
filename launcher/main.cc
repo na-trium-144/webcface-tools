@@ -3,11 +3,12 @@
 #include <CLI/CLI.hpp>
 #include <string>
 #include "launcher.h"
+#include "../common/common.h"
 
 #define DEFAULT_TOML "webcface-launcher.toml"
 
 int main(int argc, char **argv) {
-    CLI::App app{"WebCFace Launcher " TOOLS_VERSION};
+    CLI::App app{TOOLS_VERSION_DISP("WebCFace Send")};
     app.allow_windows_style_options();
 
     std::string wcli_host = "", wcli_name = "";

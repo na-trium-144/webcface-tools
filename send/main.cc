@@ -5,9 +5,10 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include "../common/common.h"
 
 int main(int argc, char **argv) {
-    CLI::App app{"WebCFace Send " TOOLS_VERSION};
+    CLI::App app{TOOLS_VERSION_DISP("WebCFace Send")};
     app.allow_windows_style_options();
 
     std::string wcli_host = "127.0.0.1", wcli_name = "webcface-send";
