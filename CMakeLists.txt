@@ -6,11 +6,14 @@ project(webcface-tools
     DESCRIPTION "WebCFace Client Applications"
 )
 add_compile_definitions(TOOLS_VERSION="${PROJECT_VERSION}")
-find_package(webcface CONFIG REQUIRED)
+find_package(webcface CONFIG)
 
 add_subdirectory(external/tiny-process-library)
 add_subdirectory(external/tomlplusplus)
-add_subdirectory(external/cli11)
+if(webcface_FOUND)
+    # webcfaceのソースを直接読み込む場合webcfaceにもあるので2度addしない
+    add_subdirectory(external/cli11)
+endif()
 
 add_executable(webcface-launcher launcher/main.cc launcher/launcher.cc)
 target_link_libraries(webcface-launcher
