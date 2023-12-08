@@ -1,11 +1,19 @@
 # webcface-tools
 [![release](https://img.shields.io/github/v/release/na-trium-144/webcface-tools)](https://github.com/na-trium-144/webcface-tools/releases)
 
-[WebCFace](https://github.com/na-trium-144/webcface)のクライアントとなるプログラム群です。
-
+[WebCFace](https://github.com/na-trium-144/webcface)のクライアントとなるプログラム群です。  
 それぞれ`-h`オプションでコマンドライン引数や使い方を確認できます。
 
-WebCFaceのREADMEにしたがって、WebCFaceといっしょにインストールしてください。
+WebCFaceのREADMEにしたがって、WebCFaceといっしょにインストールしてください。  
+ソースからビルドする場合は
+```sh
+git submodule update --init
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
 
 Ubuntu,MacOSでビルドできることを確認済み ~~Windowsは知りません~~
 
