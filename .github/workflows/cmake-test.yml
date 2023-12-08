@@ -18,7 +18,7 @@ jobs:
     steps:
     - name: install latest webcface
       run: |
-        curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep amd64 | sed 's/"//g' | awk '{print $2}')
+        curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep amd64 | grep ubuntu22.04 | sed 's/"//g' | awk '{print $2}')
         sudo apt-get install -y ./*.deb
         rm ./*.deb
     # - name: install gcc-10
