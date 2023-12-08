@@ -31,9 +31,24 @@ target_link_libraries(webcface-send
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
 
+install(FILES
+    ${CMAKE_CURRENT_LIST_DIR}/README.md
+    ${CMAKE_CURRENT_LIST_DIR}/LICENSE
+    DESTINATION share/webcface/tools
+)
+
+install(FILES
+    ${CMAKE_CURRENT_LIST_DIR}/external/tiny-process-library/LICENSE
+    DESTINATION share/webcface/3rd_party/tiny-process-library
+)
+install(FILES
+    ${CMAKE_CURRENT_LIST_DIR}/external/tomlplusplus/LICENSE
+    DESTINATION share/webcface/3rd_party/tomlplusplus
+)
+
 set(CPACK_VERBATIM_VARIABLES yes)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-set(CPACK_PACKAGE_CONTACT "nakak_u21@yahoo.co.jp")
+set(CPACK_PACKAGE_CONTACT "na-trium-144@users.noreply.github.com")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "na-trium-144 <${CPACK_PACKAGE_CONTACT}>")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS yes)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "webcface")
