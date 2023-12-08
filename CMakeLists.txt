@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(webcface-tools
     LANGUAGES CXX
-    VERSION 1.1.5
+    VERSION 1.1.6
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
@@ -13,6 +13,10 @@ if(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
 endif()
 
 add_compile_definitions(TOOLS_VERSION="${TOOLS_VERSION}")
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(-utf-8)
+endif()
 
 find_package(webcface CONFIG)
 
