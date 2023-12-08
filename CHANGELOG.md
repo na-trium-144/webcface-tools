@@ -1,3 +1,13 @@
+## [1.1.5] - 2023-12-08
+### Added
+* LICENSE (#8)
+* LICENSEを/usr/shareにインストールするようにした (#11)
+* バージョン番号にサフィックスをつけられるオプション追加
+* Ubuntu20.04でのReleaseを追加
+
+### Fixed
+* subdirectoryなど、インストールしてないwebcfaceを使用してもcmakeが通るようにした (#7)
+
 ## [1.1.4] - 2023-11-30
 ### Fixed
 * webcface-sendでvalueに数値以外の文字列を渡すとそれ以上値を受け取らなくなるのを修正
