@@ -36,8 +36,6 @@ jobs:
     - name: Install gcc-10
       run: sudo apt-get install -y gcc-10 g++-10
     - uses: actions/checkout@v4
-      with:
-        submodules: "recursive"
     - name: Configure CMake
       env:
         CC: ${{matrix.cc}}
@@ -79,8 +77,6 @@ jobs:
             cxx: g++-10
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
       - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
@@ -122,7 +118,7 @@ jobs:
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc --no-check-certificate | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             apt-get update -q -y
-            apt-get install -q -y build-essential cmake file gcc-10 g++-10 curl
+            apt-get install -q -y build-essential cmake file gcc-10 g++-10 curl git
 
           # Produce a binary artifact and place it in the mounted volume
           run: |

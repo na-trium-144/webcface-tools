@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(webcface-tools
     LANGUAGES CXX
-    VERSION 1.1.6
+    VERSION 1.1.7
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
@@ -20,12 +20,25 @@ endif()
 
 find_package(webcface CONFIG)
 
-add_subdirectory(external/tiny-process-library)
-add_subdirectory(external/tomlplusplus)
-if(webcface_FOUND)
-    # webcfaceのソースを直接読み込む場合webcfaceにもあるので2度addしない
-    add_subdirectory(external/cli11)
-endif()
+include(FetchContent)
+
+FetchContent_Declare(tiny-process-library
+    GIT_REPOSITORY https://gitlab.com/eidheim/tiny-process-library.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(tiny-process-library)
+
+FetchContent_Declare(tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG v3.4.0
+)
+FetchContent_MakeAvailable(tomlplusplus)
+
+FetchContent_Declare(cli11
+    GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+    GIT_TAG v2.3.2
+)
+FetchContent_MakeAvailable(cli11)
 
 add_executable(webcface-launcher launcher/main.cc launcher/launcher.cc)
 target_link_libraries(webcface-launcher
@@ -50,11 +63,11 @@ install(FILES
 )
 
 install(FILES
-    ${CMAKE_CURRENT_LIST_DIR}/external/tiny-process-library/LICENSE
+    ${tiny-process-library_SOURCE_DIR}/LICENSE
     DESTINATION share/webcface/3rd_party/tiny-process-library
 )
 install(FILES
-    ${CMAKE_CURRENT_LIST_DIR}/external/tomlplusplus/LICENSE
+    ${tomlplusplus_SOURCE_DIR}/LICENSE
     DESTINATION share/webcface/3rd_party/tomlplusplus
 )
 
