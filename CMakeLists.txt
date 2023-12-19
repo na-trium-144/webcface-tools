@@ -56,6 +56,14 @@ target_link_libraries(webcface-send
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
 
+add_executable(webcface-viewer viewer/main.cc viewer/display.cc)
+target_link_libraries(webcface-viewer
+    webcface::webcface
+    CLI11
+    ncurses
+)
+install(TARGETS webcface-viewer RUNTIME DESTINATION bin)
+
 install(FILES
     ${CMAKE_CURRENT_LIST_DIR}/README.md
     ${CMAKE_CURRENT_LIST_DIR}/LICENSE
