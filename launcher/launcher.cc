@@ -8,6 +8,7 @@
 #include <functional>
 #include <stdexcept>
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include "command.h"
 
 void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
@@ -15,10 +16,13 @@ void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
 
     auto config_commands = config["command"].as_array();
     for (auto &&v : *config_commands) {
-        commands.push_back(
+        auto cmd =
             std::make_shared<Command>(wcli, v[toml::path("name")].value_or(""),
                                       v[toml::path("exec")].value_or(""),
-                                      v[toml::path("workdir")].value_or(".")));
+                                      v[toml::path("workdir")].value_or("."));
+        commands.push_back(cmd);
+        spdlog::info("Command '{}': '{}' (workdir: {})", cmd->name, cmd->exec,
+                     cmd->workdir);
     }
 
     while (true) {
