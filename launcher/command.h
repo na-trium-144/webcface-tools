@@ -12,23 +12,30 @@ struct Command {
         start = wcli.func(name + "_start")
                     .set([this] {
                         if (is_running()) {
+                            spdlog::warn("Command '{}' is already started.",
+                                         this->name);
                             throw std::runtime_error("already started");
                         } else {
+                            spdlog::info("Starting command '{}'.", this->name);
                             p = std::make_shared<TinyProcessLib::Process>(
                                 this->exec, this->workdir);
                         }
                     })
                     .hidden(true);
-        terminate = wcli.func(name + "_terminate")
-                        .set([this] {
-                            if (p) {
-                                p->kill(false);
-                                p.reset();
-                            } else {
-                                throw std::runtime_error("already stopped");
-                            }
-                        })
-                        .hidden(true);
+        terminate =
+            wcli.func(name + "_terminate")
+                .set([this] {
+                    if (p) {
+                        spdlog::info("Stopping command '{}'.", this->name);
+                        p->kill(false);
+                        p.reset();
+                    } else {
+                        spdlog::warn("Command '{}' is already stopped.",
+                                     this->name);
+                        throw std::runtime_error("already stopped");
+                    }
+                })
+                .hidden(true);
     }
     std::string name;
     std::string exec;
