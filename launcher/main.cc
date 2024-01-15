@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
                    "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
     app.add_option("-m,--member", wcli_name, "Client member name");
 
-    bool stdin = false;
-    app.add_flag("-s,--stdin", stdin, "Read config from stdin instead of file");
+    bool use_stdin = false;
+    app.add_flag("-s,--stdin", use_stdin, "Read config from stdin instead of file");
 
     std::string toml_path = DEFAULT_TOML;
     auto config_opt =
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     CLI11_PARSE(app, argc, argv);
 
     toml::parse_result config;
-    if (stdin) {
+    if (use_stdin) {
         std::string config_str = "";
         while (!std::cin.eof()) {
             std::string input;

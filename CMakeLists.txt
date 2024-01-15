@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(webcface-tools
     LANGUAGES CXX
-    VERSION 1.2.0
+    VERSION 1.2.1
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
