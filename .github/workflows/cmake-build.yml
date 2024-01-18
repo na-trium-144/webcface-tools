@@ -124,6 +124,7 @@ jobs:
           run: |
             cd /workspace
             curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep ${{matrix.arch_name}} | grep ${{matrix.distro}} | sed 's/"//g' | awk '{print $2}')
+            apt-get update -q -y
             apt-get install -y ./*.deb
             rm ./*.deb
             cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=${distro}
