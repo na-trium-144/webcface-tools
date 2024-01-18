@@ -40,6 +40,8 @@ FetchContent_Declare(cli11
 )
 FetchContent_MakeAvailable(cli11)
 
+find_package(OpenCV QUIET)
+
 add_executable(webcface-launcher launcher/main.cc launcher/launcher.cc)
 target_link_libraries(webcface-launcher
     webcface::webcface
@@ -55,6 +57,18 @@ target_link_libraries(webcface-send
     CLI11
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
+
+if(OpenCV_FOUND)
+    add_executable(webcface-cv-capture cv-capture/main.cc)
+    target_link_libraries(webcface-cv-capture
+        webcface::webcface
+        CLI11
+        ${OpenCV_LIBS}
+    )
+    install(TARGETS webcface-cv-capture RUNTIME DESTINATION bin)
+else()
+    message(STATUS "OpenCV Not Found, webcface-cv-capture will be disabled")
+endif()
 
 install(FILES
     ${CMAKE_CURRENT_LIST_DIR}/README.md

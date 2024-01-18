@@ -71,3 +71,13 @@ exec = "./main"
 	* 省略時カレントディレクトリになります
 * exec
 	* 実行するコマンドです
+
+# webcface-cv-capture
+
+OpenCVのVideoCaptureで画像を取得し、WebCFaceに送信します。
+
+```sh
+webcface-cv-capture 0
+```
+でVideoCapture(0)を取得します。
+その他オプションで画像のサイズ、FPS、フォーマットを指定できます。
