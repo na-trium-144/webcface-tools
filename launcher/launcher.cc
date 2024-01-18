@@ -26,22 +26,44 @@ void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
     }
 
     while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         auto v = wcli.view("launcher");
         for (auto c : commands) {
             v << c->name << " ";
+            auto start = webcface::button("start", c->start);
+            auto stop = webcface::button("stop", c->terminate);
             if (c->is_running()) {
-                v << WebCFace::ViewComponents::button("stop", c->terminate)
-                         .bgColor(WebCFace::ViewColor::orange);
+                // todo: button.disable がほしい
+                start.bgColor(WebCFace::ViewColor::gray);
+                stop.bgColor(WebCFace::ViewColor::orange);
             } else {
-                v << WebCFace::ViewComponents::button("start", c->start);
-                if (c->exit_status != 0) {
-                    v << WebCFace::ViewComponents::text(
-                             "(" + std::to_string(c->exit_status) + ") ")
-                             .textColor(WebCFace::ViewColor::red);
-                }
+                start.bgColor(WebCFace::ViewColor::green);
+                stop.bgColor(WebCFace::ViewColor::gray);
             }
-            v << std::endl;
+            v << start << stop;
+            if (!c->is_running() && c->exit_status != 0) {
+                v << webcface::text("(" + std::to_string(c->exit_status) + ") ")
+                         .textColor(WebCFace::ViewColor::red);
+                std::string logs = c->logs;
+                if (!logs.empty()) {
+                    v << webcface::button("Clear Logs",
+                                          [c] { c->logs.clear(); })
+                             .bgColor(webcface::ViewColor::cyan)
+                      << std::endl;
+                    for (int i;
+                         (i = logs.find_first_of("\n")) != std::string::npos;) {
+                        v << "　　" << logs.substr(0, i) << std::endl;
+                        logs = logs.substr(i + 1);
+                    }
+                    if (!logs.empty()) {
+                        v << "　　" << logs << std::endl;
+                    }
+                } else {
+                    v << std::endl;
+                }
+            } else {
+                v << std::endl;
+            }
         }
         v.sync();
         wcli.sync();
