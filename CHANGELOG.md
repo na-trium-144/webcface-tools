@@ -1,12 +1,19 @@
+## [1.3.0] - 2024-01-19
+### Added
+* webcface-cv-capture (#19)
+### Changed
+* launcherのstartとstopのボタンを別々にした & エラー時ログ表示追加 (#18)
+
+
 ## [1.2.1] - 2024-01-15
 ### Fixed
-* windowsでのビルドエラーを修正
+* windowsでのビルドエラーを修正 (#17)
 ### Changed
 * ciでwindowsのビルドをテストするようにした
 
 ## [1.2.0] - 2024-01-14
 ### Added
-* launcherに標準入力から設定データを渡せる -s オプション追加
+* launcherに標準入力から設定データを渡せる -s オプション追加 (#16)
 ### Changed
 * launcherでコマンド実行時、終了時、エラー時などにログを出すようにした
 
