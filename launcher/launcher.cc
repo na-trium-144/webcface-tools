@@ -16,10 +16,12 @@ void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
 
     auto config_commands = config["command"].as_array();
     for (auto &&v : *config_commands) {
-        auto cmd =
-            std::make_shared<Command>(wcli, v[toml::path("name")].value_or(""),
-                                      v[toml::path("exec")].value_or(""),
-                                      v[toml::path("workdir")].value_or("."));
+        auto cmd = std::make_shared<Command>(
+            wcli, v[toml::path("name")].value_or(""),
+            v[toml::path("exec")].value_or(""),
+            v[toml::path("workdir")].value_or("."),
+            v[toml::path("stdout_capture")].value_or("onerror"),
+            v[toml::path("stdout_utf8")].value_or(false));
         commands.push_back(cmd);
         spdlog::info("Command '{}': '{}' (workdir: {})", cmd->name, cmd->exec,
                      cmd->workdir);
@@ -44,6 +46,10 @@ void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
             if (!c->is_running() && c->exit_status != 0) {
                 v << webcface::text("(" + std::to_string(c->exit_status) + ") ")
                          .textColor(WebCFace::ViewColor::red);
+            }
+            if (!c->is_running() &&
+                (c->exit_status != 0 ||
+                 c->capture_stdout == CaptureMode::always)) {
                 std::string logs = c->logs;
                 if (!logs.empty()) {
                     v << webcface::button("Clear Logs",

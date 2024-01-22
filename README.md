@@ -71,6 +71,12 @@ exec = "./main"
 	* 省略時カレントディレクトリになります
 * exec
 	* 実行するコマンドです
+* stdout_capture
+	* `"never"`, `"onerror"`(デフォルト), `"always"` が指定可能です
+	* alwaysではコマンド終了時、onerrorではエラーで終了時にコマンドの標準出力とエラー出力の内容をlauncherのボタンの下に表示します
+* stdout_utf8 (windowsのみ)
+	* falseの場合(デフォルト)、stdout_captureで取得したデータはANSIエンコーディングとみなし、UTF-8に変換してからWebCFaceに送られます。
+	* trueの場合、stdout_captureで取得したデータをUTF-8とみなし、そのままWebCFaceに送ります。
 
 # webcface-cv-capture
 

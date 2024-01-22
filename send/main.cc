@@ -26,6 +26,12 @@ int main(int argc, char **argv) {
         ->check(CLI::IsMember({"value", "text", "log"}, CLI::ignore_case));
     app.add_option("field", field, "Field name to send (default: data)");
 
+#ifdef WIN32
+    bool utf8 = false;
+    app.add_flag("-8,--utf8", utf8,
+                 "Treat input as UTF-8 (windows only, default: false)");
+#endif
+
     CLI11_PARSE(app, argc, argv);
 
     WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
@@ -33,13 +39,19 @@ int main(int argc, char **argv) {
     auto logger =
         std::make_shared<spdlog::logger>("webcface-send", wcli.loggerSink());
     while (!std::cin.eof()) {
-        std::string input;
-        std::getline(std::cin, input);
+        std::string input, input_org;
+        std::getline(std::cin, input_org);
+        input = input_org;
+#ifdef WIN32
+        if (!utf8) {
+            input = acpToUTF8(input_org);
+        }
+#endif
         if (data_type == "value") {
             try {
                 wcli.value(field).set(std::stod(input));
                 if (echo) {
-                    std::cout << input << std::endl;
+                    std::cout << input_org << std::endl;
                 }
             } catch (const std::invalid_argument &) {
             } catch (const std::out_of_range &) {
@@ -47,12 +59,12 @@ int main(int argc, char **argv) {
         } else if (data_type == "text") {
             wcli.text(field).set(input);
             if (echo) {
-                std::cout << input << std::endl;
+                std::cout << input_org << std::endl;
             }
         } else if (data_type == "log") {
             logger->info(input);
             if (echo) {
-                std::cout << input << std::endl;
+                std::cout << input_org << std::endl;
             }
         }
         wcli.sync();
