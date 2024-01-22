@@ -49,12 +49,18 @@ target_link_libraries(webcface-launcher
     tomlplusplus_tomlplusplus
     CLI11
 )
+set_target_properties(webcface-launcher PROPERTIES
+    INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
+)
 install(TARGETS webcface-launcher RUNTIME DESTINATION bin)
 
 add_executable(webcface-send send/main.cc)
 target_link_libraries(webcface-send
     webcface::webcface
     CLI11
+)
+set_target_properties(webcface-send PROPERTIES
+    INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
 
@@ -65,9 +71,12 @@ if(OpenCV_FOUND)
         CLI11
         ${OpenCV_LIBS}
     )
+    set_target_properties(webcface-cv-capture PROPERTIES
+        INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
+    )
     install(TARGETS webcface-cv-capture RUNTIME DESTINATION bin)
 else()
-    message(STATUS "OpenCV Not Found, webcface-cv-capture will be disabled")
+    message(STATUS "OpenCV Not Found, Skipping target webcface-cv-capture")
 endif()
 
 install(FILES
