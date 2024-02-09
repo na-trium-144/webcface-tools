@@ -1,0 +1,10 @@
+[Unit]
+Description=WebCFace Launcher
+
+[Service]
+Type=exec
+Restart=always
+ExecStart=webcface-launcher @WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH@
+
+[Install]
+WantedBy=multi-user.target
