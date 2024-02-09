@@ -1,3 +1,13 @@
+## [1.3.1] - 2024-02-09
+### Added
+* ReleaseするUbuntuのdebパッケージで lib/systemd/system/webcface-launcher.service をインストールするようにした (#25)
+* launcherでstdoutとstderrをキャプチャしないようにする(ver1.2以前の仕様にする)設定項目を追加 (#23)
+* launcher, sendで入力がutf8かどうか指定するオプション追加(windowsのみ) (#23)
+	* ver1.3.0まではすべてデフォルトでutf8とみなしていたが、1.3.1ではデフォルトでACPとみなしutf8へ変換するよう仕様変更
+### Fixed
+* Linux,Macでlauncherの引数に絶対パスを渡せないバグを修正 (#25)
+* RPATHが設定されておらずライブラリを読み込めない問題を修正 (#24)
+
 ## [1.3.0] - 2024-01-19
 ### Added
 * webcface-cv-capture (#19)
