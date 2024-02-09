@@ -6,6 +6,8 @@ project(webcface-tools
     DESCRIPTION "WebCFace Client Applications"
 )
 set(WEBCFACE_TOOLS_VERSION_SUFFIX "" CACHE STRING "version suffix")
+option(WEBCFACE_TOOLS_INSTALL_SERVICE "generate install target for systemd service file" off)
+set(WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH "/etc/webcface/webcface-launcher.toml" CACHE STRING "webcface-launcher config file path for systemd service")
 
 set(TOOLS_VERSION ${PROJECT_VERSION})
 if(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
@@ -77,6 +79,18 @@ if(OpenCV_FOUND)
     install(TARGETS webcface-cv-capture RUNTIME DESTINATION bin)
 else()
     message(STATUS "OpenCV Not Found, Skipping target webcface-cv-capture")
+endif()
+
+if(WEBCFACE_TOOLS_INSTALL_SERVICE)
+    configure_file(
+        cmake/webcface-launcher.service.in
+        webcface-launcher.service
+        @ONLY
+    )
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/webcface-launcher.service
+        DESTINATION lib/systemd/system
+    )
 endif()
 
 install(FILES
