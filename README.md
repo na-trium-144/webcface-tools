@@ -14,8 +14,9 @@ cmake ..
 make
 sudo make install
 ```
+* `-DWEBCFACE_TOOLS_INSTALL_SERVICE`、`-DWEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH`オプションでsystemdのserviceを lib/systemd/system にインストールできます
 
-Ubuntu,MacOSでビルドできることを確認済み ~~Windowsは知りません~~
+Ubuntu,MacOS,Windowsでビルドできるはずです
 
 # webcface-send
 
@@ -37,14 +38,21 @@ webcface-launcher ./webcface-launcher.toml
 ```
 のように指定して起動します。
 
-serverとlauncherだけを常時起動しておき、webcfaceでリモートに操作するという使い方ができます
+serverとlauncherだけを常時起動しておき、webcfaceでリモートに操作するという使い方ができます。
+
+Releaseのdebパッケージからインストールした場合は、
+```sh
+sudo systemctl enable webcface-launcher
+sudo systemctl start webcface-launcher
+```
+でwebcface-launcherをサービスとして自動起動することができます。その場合は設定ファイルを /etc/webcface/webcface-launcher.toml として置いてください。
 
 tomlファイルの例
 ```toml
 [init]
 address = "127.0.0.1"
 port = 7530
-name = "my launcher"
+name = "webcface-launcher"
  
 [[command]]
 name = "sleep"
