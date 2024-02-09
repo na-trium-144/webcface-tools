@@ -10,7 +10,6 @@
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace CV-Capture")};
-    app.allow_windows_style_options();
 
     std::string wcli_host = "127.0.0.1", wcli_name = "webcface-cv-capture";
     int wcli_port = WEBCFACE_DEFAULT_PORT;

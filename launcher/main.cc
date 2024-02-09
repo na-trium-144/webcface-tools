@@ -10,9 +10,8 @@
 #define DEFAULT_TOML "webcface-launcher.toml"
 
 int main(int argc, char **argv) {
-    CLI::App app{TOOLS_VERSION_DISP("WebCFace Send")};
-    app.allow_windows_style_options();
-
+    CLI::App app{TOOLS_VERSION_DISP("WebCFace Launcher")};
+    
     std::string wcli_host = "", wcli_name = "";
     int wcli_port = 0;
     app.add_option("-a,--address", wcli_host,
