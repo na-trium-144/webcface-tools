@@ -14,9 +14,10 @@ struct Command {
     Command &operator=(const Command &) = delete;
     Command(WebCFace::Client &wcli, const std::string &name,
             const std::string &exec, const std::string &workdir,
-            const std::string &capture_stdout, bool stdout_is_utf8)
+            const std::string &capture_stdout, bool stdout_is_utf8,
+            const std::unordered_map<std::string, std::string> &env)
         : name(name), exec(exec), workdir(workdir),
-          stdout_is_utf8(stdout_is_utf8) {
+          stdout_is_utf8(stdout_is_utf8), env(env) {
         if (capture_stdout == "never") {
             this->capture_stdout = CaptureMode::never;
         } else if (capture_stdout == "onerror") {
@@ -38,26 +39,26 @@ struct Command {
             this->logs.append(bytes, n);
 #endif
         };
-        start =
-            wcli.func(name + "_start")
-                .set([this, read_log] {
-                    if (is_running()) {
-                        spdlog::warn("Command '{}' is already started.",
-                                     this->name);
-                        throw std::runtime_error("already started");
-                    } else {
-                        spdlog::info("Starting command '{}'.", this->name);
-                        this->logs.clear();
-                        if (this->capture_stdout != CaptureMode::never) {
-                            p = std::make_shared<TinyProcessLib::Process>(
-                                this->exec, this->workdir, read_log, read_log);
+        start = wcli.func(name + "_start")
+                    .set([this, read_log] {
+                        if (is_running()) {
+                            spdlog::warn("Command '{}' is already started.",
+                                         this->name);
+                            throw std::runtime_error("already started");
                         } else {
-                            p = std::make_shared<TinyProcessLib::Process>(
-                                this->exec, this->workdir);
+                            spdlog::info("Starting command '{}'.", this->name);
+                            this->logs.clear();
+                            if (this->capture_stdout != CaptureMode::never) {
+                                p = std::make_shared<TinyProcessLib::Process>(
+                                    this->exec, this->workdir, this->env,
+                                    read_log, read_log);
+                            } else {
+                                p = std::make_shared<TinyProcessLib::Process>(
+                                    this->exec, this->workdir, this->env);
+                            }
                         }
-                    }
-                })
-                .hidden(true);
+                    })
+                    .hidden(true);
         terminate =
             wcli.func(name + "_terminate")
                 .set([this] {
@@ -78,6 +79,7 @@ struct Command {
     std::string workdir;
     CaptureMode capture_stdout;
     bool stdout_is_utf8;
+    std::unordered_map<std::string, std::string> env;
 
     int exit_status = 0;
     std::shared_ptr<TinyProcessLib::Process> p;

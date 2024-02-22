@@ -16,12 +16,18 @@ void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
 
     auto config_commands = config["command"].as_array();
     for (auto &&v : *config_commands) {
+        std::unordered_map<std::string, std::string> env;
+        if(v[toml::path("env")].is_table()){
+            for (auto &e : *v[toml::path("env")].as_table()) {
+                env.emplace(e.first.str(), e.second.value_or(""));
+            }
+        }
         auto cmd = std::make_shared<Command>(
             wcli, v[toml::path("name")].value_or(""),
             v[toml::path("exec")].value_or(""),
             v[toml::path("workdir")].value_or("."),
             v[toml::path("stdout_capture")].value_or("onerror"),
-            v[toml::path("stdout_utf8")].value_or(false));
+            v[toml::path("stdout_utf8")].value_or(false), env);
         commands.push_back(cmd);
         spdlog::info("Command '{}': '{}' (workdir: {})", cmd->name, cmd->exec,
                      cmd->workdir);
