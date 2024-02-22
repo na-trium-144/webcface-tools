@@ -1,7 +1,9 @@
 #pragma once
 #include <webcface/webcface.h>
+#include <process.hpp>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include "../common/common.h"
 
 enum class CaptureMode {
@@ -14,20 +16,10 @@ struct Command {
     Command &operator=(const Command &) = delete;
     Command(WebCFace::Client &wcli, const std::string &name,
             const std::string &exec, const std::string &workdir,
-            const std::string &capture_stdout, bool stdout_is_utf8,
+            CaptureMode capture_stdout, bool stdout_is_utf8,
             const std::unordered_map<std::string, std::string> &env)
-        : name(name), exec(exec), workdir(workdir),
+        : name(name), exec(exec), workdir(workdir), capture_stdout(capture_stdout),
           stdout_is_utf8(stdout_is_utf8), env(env) {
-        if (capture_stdout == "never") {
-            this->capture_stdout = CaptureMode::never;
-        } else if (capture_stdout == "onerror") {
-            this->capture_stdout = CaptureMode::onerror;
-        } else if (capture_stdout == "always") {
-            this->capture_stdout = CaptureMode::always;
-        } else {
-            spdlog::error(
-                "'stdout_capture' must be 'never', 'onerror' or 'always'");
-        }
         auto read_log = [this](const char *bytes, std::size_t n) {
 #ifdef WIN32
             if (!this->stdout_is_utf8) {
