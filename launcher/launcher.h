@@ -7,8 +7,6 @@
 
 std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
                                                 toml::parse_result &config);
-
-void launcher(WebCFace::Client &wcli,
-              const std::vector<std::shared_ptr<Command>> &commands);
-
+void launcherLoop(WebCFace::Client &wcli,
+                  const std::vector<std::shared_ptr<Command>> &commands);
 std::string tomlSourceInfo(const toml::source_region &src);

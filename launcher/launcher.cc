@@ -109,59 +109,56 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
             }
         }
 
-        commands.push_back(std::make_shared<Command>(wcli, name, exec, workdir,
-                                                     capture, utf8, env));
+        auto cmd =
+            std::make_shared<Command>(name, exec, workdir, capture, utf8, env);
+        cmd->initFunc(wcli);
+        commands.push_back(cmd);
     }
     return commands;
 }
 
-void launcher(WebCFace::Client &wcli,
-              const std::vector<std::shared_ptr<Command>> &commands) {
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        auto v = wcli.view("launcher");
-        for (auto c : commands) {
-            v << c->name << " ";
-            auto start = webcface::button("start", c->start);
-            auto stop = webcface::button("stop", c->terminate);
-            if (c->is_running()) {
-                // todo: button.disable がほしい
-                start.bgColor(WebCFace::ViewColor::gray);
-                stop.bgColor(WebCFace::ViewColor::orange);
-            } else {
-                start.bgColor(WebCFace::ViewColor::green);
-                stop.bgColor(WebCFace::ViewColor::gray);
-            }
-            v << start << stop;
-            if (!c->is_running() && c->exit_status != 0) {
-                v << webcface::text("(" + std::to_string(c->exit_status) + ") ")
-                         .textColor(WebCFace::ViewColor::red);
-            }
-            if (!c->is_running() &&
-                (c->exit_status != 0 ||
-                 c->capture_stdout == CaptureMode::always)) {
-                std::string logs = c->logs;
+void launcherLoop(WebCFace::Client &wcli,
+                  const std::vector<std::shared_ptr<Command>> &commands) {
+    auto v = wcli.view("launcher");
+    for (auto c : commands) {
+        v << c->name << " ";
+        auto start = webcface::button("start", c->start_f);
+        auto stop = webcface::button("stop", c->terminate_f);
+        if (c->is_running()) {
+            // todo: button.disable がほしい
+            start.bgColor(WebCFace::ViewColor::gray);
+            stop.bgColor(WebCFace::ViewColor::orange);
+        } else {
+            start.bgColor(WebCFace::ViewColor::green);
+            stop.bgColor(WebCFace::ViewColor::gray);
+        }
+        v << start << stop;
+        if (!c->is_running() && c->exit_status != 0) {
+            v << webcface::text("(" + std::to_string(c->exit_status) + ") ")
+                     .textColor(WebCFace::ViewColor::red);
+        }
+        if (!c->is_running() &&
+            (c->exit_status != 0 || c->capture_stdout == CaptureMode::always)) {
+            std::string logs = c->logs;
+            if (!logs.empty()) {
+                v << webcface::button("Clear Logs", [c] { c->logs.clear(); })
+                         .bgColor(webcface::ViewColor::cyan)
+                  << std::endl;
+                for (int i;
+                     (i = logs.find_first_of("\n")) != std::string::npos;) {
+                    v << "　　" << logs.substr(0, i) << std::endl;
+                    logs = logs.substr(i + 1);
+                }
                 if (!logs.empty()) {
-                    v << webcface::button("Clear Logs",
-                                          [c] { c->logs.clear(); })
-                             .bgColor(webcface::ViewColor::cyan)
-                      << std::endl;
-                    for (int i;
-                         (i = logs.find_first_of("\n")) != std::string::npos;) {
-                        v << "　　" << logs.substr(0, i) << std::endl;
-                        logs = logs.substr(i + 1);
-                    }
-                    if (!logs.empty()) {
-                        v << "　　" << logs << std::endl;
-                    }
-                } else {
-                    v << std::endl;
+                    v << "　　" << logs << std::endl;
                 }
             } else {
                 v << std::endl;
             }
+        } else {
+            v << std::endl;
         }
-        v.sync();
-        wcli.sync();
     }
+    v.sync();
+    wcli.sync();
 }

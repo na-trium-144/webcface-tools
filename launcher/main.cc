@@ -6,8 +6,12 @@
 #include <stdexcept>
 #include "launcher.h"
 #include "../common/common.h"
+#ifndef _WIN32
+#include "signal_handler_unix.h"
+#endif
 
 #define DEFAULT_TOML "webcface-launcher.toml"
+
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace Launcher")};
@@ -45,7 +49,8 @@ int main(int argc, char **argv) {
             config = toml::parse_file(toml_path);
         } catch (const toml::parse_error &e) {
             spdlog::error("Error reading config file {}: {} ({})", toml_path,
-                          std::string(e.description()), tomlSourceInfo(e.source()));
+                          std::string(e.description()),
+                          tomlSourceInfo(e.source()));
             std::exit(1);
         } catch (const std::exception &e) {
             spdlog::error("Error reading config file {}: {}", toml_path,
@@ -64,5 +69,44 @@ int main(int argc, char **argv) {
     }
     WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
     std::vector<std::shared_ptr<Command>> commands = parseToml(wcli, config);
-    launcher(wcli, commands);
+
+    initHandler();
+
+    while (!shouldStop()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        launcherLoop(wcli, commands);
+    }
+
+#ifndef _WIN32
+    int sig_send = 0;
+    do {
+        if (shouldStop()) {
+            spdlog::warn("Signal {} received.", sig_received);
+            if (sig_send == 0) {
+                if (sig_received == SIGINT) {
+                    sig_send = SIGINT;
+                } else {
+                    sig_send = SIGTERM;
+                }
+            } else if (sig_send != SIGTERM) {
+                // 再度シグナルが送られたら、sigtermにしてもう1回送る
+                sig_send = SIGTERM;
+                spdlog::warn("Escalating to {}.", sig_send);
+            } else {
+                // termでも止まらなかったらkill?
+                sig_send = SIGKILL;
+                spdlog::warn("Escalating to {}.", sig_send);
+            }
+            for (auto &cmd : commands) {
+                if (cmd->is_running()) {
+                    cmd->kill(sig_send);
+                }
+            }
+            sig_received = 0;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while (std::any_of(commands.begin(), commands.end(),
+                         [](const auto &cmd) { return cmd->is_running(); }));
+    return 1;
+#endif
 }
