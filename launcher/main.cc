@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace Launcher")};
-    
+
     std::string wcli_host = "", wcli_name = "";
     int wcli_port = 0;
     app.add_option("-a,--address", wcli_host,
@@ -21,7 +21,8 @@ int main(int argc, char **argv) {
     app.add_option("-m,--member", wcli_name, "Client member name");
 
     bool use_stdin = false;
-    app.add_flag("-s,--stdin", use_stdin, "Read config from stdin instead of file");
+    app.add_flag("-s,--stdin", use_stdin,
+                 "Read config from stdin instead of file");
 
     std::string toml_path = DEFAULT_TOML;
     auto config_opt =
@@ -42,8 +43,12 @@ int main(int argc, char **argv) {
     } else {
         try {
             config = toml::parse_file(toml_path);
+        } catch (const toml::parse_error &e) {
+            spdlog::error("Error reading config file {}: {} ({})", toml_path,
+                          std::string(e.description()), tomlSourceInfo(e.source()));
+            std::exit(1);
         } catch (const std::exception &e) {
-            spdlog::error("Cannot read config file {}: {}", toml_path,
+            spdlog::error("Error reading config file {}: {}", toml_path,
                           e.what());
             std::exit(1);
         }
@@ -57,10 +62,7 @@ int main(int argc, char **argv) {
     if (wcli_port == 0) {
         wcli_port = config["init"]["port"].value_or(WEBCFACE_DEFAULT_PORT);
     }
-    if (!config["command"].is_array()) {
-        spdlog::error("No commands specified in config.");
-        std::exit(1);
-    }
     WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
-    launcher(wcli, config);
+    std::vector<std::shared_ptr<Command>> commands = parseToml(wcli, config);
+    launcher(wcli, commands);
 }

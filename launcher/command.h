@@ -1,7 +1,10 @@
 #pragma once
 #include <webcface/webcface.h>
+#include <spdlog/spdlog.h>
+#include <process.hpp>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include "../common/common.h"
 
 enum class CaptureMode {
@@ -14,20 +17,14 @@ struct Command {
     Command &operator=(const Command &) = delete;
     Command(WebCFace::Client &wcli, const std::string &name,
             const std::string &exec, const std::string &workdir,
-            const std::string &capture_stdout, bool stdout_is_utf8)
+            CaptureMode capture_stdout, bool stdout_is_utf8,
+            const std::unordered_map<std::string, std::string> &env)
         : name(name), exec(exec), workdir(workdir),
-          stdout_is_utf8(stdout_is_utf8) {
-        if (capture_stdout == "never") {
-            this->capture_stdout = CaptureMode::never;
-        } else if (capture_stdout == "onerror") {
-            this->capture_stdout = CaptureMode::onerror;
-        } else if (capture_stdout == "always") {
-            this->capture_stdout = CaptureMode::always;
-        } else {
-            spdlog::error(
-                "'stdout_capture' must be 'never', 'onerror' or 'always'");
-        }
-        auto read_log = [this](const char *bytes, std::size_t n) {
+          capture_stdout(capture_stdout), stdout_is_utf8(stdout_is_utf8),
+          env(env) {
+        auto logger = spdlog::stdout_color_mt(name);
+        logger->set_pattern("[%n] %v");
+        auto read_log = [this, logger](const char *bytes, std::size_t n) {
 #ifdef WIN32
             if (!this->stdout_is_utf8) {
                 this->logs += acpToUTF8(bytes, static_cast<int>(n));
@@ -37,27 +34,28 @@ struct Command {
 #else
             this->logs.append(bytes, n);
 #endif
+            logger->info(std::string(bytes, n));
         };
-        start =
-            wcli.func(name + "_start")
-                .set([this, read_log] {
-                    if (is_running()) {
-                        spdlog::warn("Command '{}' is already started.",
-                                     this->name);
-                        throw std::runtime_error("already started");
-                    } else {
-                        spdlog::info("Starting command '{}'.", this->name);
-                        this->logs.clear();
-                        if (this->capture_stdout != CaptureMode::never) {
-                            p = std::make_shared<TinyProcessLib::Process>(
-                                this->exec, this->workdir, read_log, read_log);
+        start = wcli.func(name + "_start")
+                    .set([this, read_log] {
+                        if (is_running()) {
+                            spdlog::warn("Command '{}' is already started.",
+                                         this->name);
+                            throw std::runtime_error("already started");
                         } else {
-                            p = std::make_shared<TinyProcessLib::Process>(
-                                this->exec, this->workdir);
+                            spdlog::info("Starting command '{}'.", this->name);
+                            this->logs.clear();
+                            if (this->capture_stdout != CaptureMode::never) {
+                                p = std::make_shared<TinyProcessLib::Process>(
+                                    this->exec, this->workdir, this->env,
+                                    read_log, read_log);
+                            } else {
+                                p = std::make_shared<TinyProcessLib::Process>(
+                                    this->exec, this->workdir, this->env);
+                            }
                         }
-                    }
-                })
-                .hidden(true);
+                    })
+                    .hidden(true);
         terminate =
             wcli.func(name + "_terminate")
                 .set([this] {
@@ -78,6 +76,7 @@ struct Command {
     std::string workdir;
     CaptureMode capture_stdout;
     bool stdout_is_utf8;
+    std::unordered_map<std::string, std::string> env;
 
     int exit_status = 0;
     std::shared_ptr<TinyProcessLib::Process> p;

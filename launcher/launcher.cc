@@ -1,6 +1,5 @@
 #include <webcface/webcface.h>
 #include <toml++/toml.hpp>
-#include <process.hpp>
 #include <string>
 #include <vector>
 #include <thread>
@@ -9,24 +8,115 @@
 #include <stdexcept>
 #include <iostream>
 #include <spdlog/spdlog.h>
-#include "command.h"
+#include <sstream>
+#include "launcher.h"
 
-void launcher(WebCFace::Client &wcli, toml::parse_result &config) {
+std::string tomlSourceInfo(const toml::source_region &src) {
+    std::stringstream ss;
+    ss << src;
+    return ss.str();
+}
+
+std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
+                                                toml::parse_result &config) {
     std::vector<std::shared_ptr<Command>> commands;
-
+    if (!config["command"].is_array()) {
+        spdlog::error("No commands specified in config.");
+        std::exit(1);
+    }
     auto config_commands = config["command"].as_array();
     for (auto &&v : *config_commands) {
-        auto cmd = std::make_shared<Command>(
-            wcli, v[toml::path("name")].value_or(""),
-            v[toml::path("exec")].value_or(""),
-            v[toml::path("workdir")].value_or("."),
-            v[toml::path("stdout_capture")].value_or("onerror"),
-            v[toml::path("stdout_utf8")].value_or(false));
-        commands.push_back(cmd);
-        spdlog::info("Command '{}': '{}' (workdir: {})", cmd->name, cmd->exec,
-                     cmd->workdir);
-    }
+        auto t_name = v[toml::path("name")];
+        if (!t_name.is_string()) {
+            spdlog::error("Error reading 'name'");
+            std::exit(1);
+        }
+        auto name = **t_name.as_string();
 
+        auto t_exec = v[toml::path("exec")];
+        if (!t_exec.is_string()) {
+            spdlog::error("Error reading 'exec'");
+            std::exit(1);
+        }
+        auto exec = **t_exec.as_string();
+        spdlog::info("Command '{}': {}", name, exec);
+
+        auto t_wd = v[toml::path("workdir")];
+        std::string workdir = ".";
+        if (t_wd) {
+            if (!t_wd.is_string()) {
+                spdlog::error("Error reading 'workdir'");
+                std::exit(1);
+            }
+            workdir = **t_wd.as_string();
+            spdlog::info(" workdir: {}", workdir);
+        }
+
+        auto t_cap = v[toml::path("stdout_capture")];
+        CaptureMode capture = CaptureMode::onerror;
+        if (t_cap) {
+            if (!t_cap.is_string()) {
+                spdlog::error("Error reading 'stdout_capture'");
+                std::exit(1);
+            }
+            auto capture_stdout = **t_cap.as_string();
+            if (capture_stdout == "never") {
+                capture = CaptureMode::never;
+            } else if (capture_stdout == "onerror") {
+                capture = CaptureMode::onerror;
+            } else if (capture_stdout == "always") {
+                capture = CaptureMode::always;
+            } else {
+                spdlog::error(
+                    "'stdout_capture' must be 'never', 'onerror' or 'always'.");
+                std::exit(1);
+            }
+            spdlog::info(" stdout_capture: {}", capture_stdout);
+        }
+
+        auto t_utf8 = v[toml::path("stdout_utf8")];
+        bool utf8 = false;
+        if (t_utf8) {
+            if (!t_utf8.is_boolean()) {
+                spdlog::error("Error reading 'stdout_utf8'");
+                std::exit(1);
+            }
+            utf8 = **t_utf8.as_boolean();
+#ifdef _WIN32
+            spdlog::info(" stdout_utf8: {}", utf8);
+#else
+            spdlog::warn("'stdout_utf8' has no effect on Linux and MacOS.");
+#endif
+        }
+
+        std::unordered_map<std::string, std::string> env;
+        auto t_env = v[toml::path("env")];
+        if (t_env) {
+            if (!t_env.is_table()) {
+                spdlog::error("Error reading 'env'");
+                std::exit(1);
+            }
+            spdlog::info(" env:");
+            for (auto &e : *v[toml::path("env")].as_table()) {
+                auto key = e.first.str();
+                if (!e.second.is_string()) {
+                    spdlog::error("Error reading env: '{}'", key);
+                    std::exit(1);
+                }
+                auto val = **e.second.as_string();
+                env.emplace(key, val);
+                spdlog::info("  {} = '{}'", key, val);
+            }
+        }
+
+        commands.push_back(std::make_shared<Command>(wcli, name, exec, workdir,
+                                                     capture, utf8, env));
+    }
+    return commands;
+}
+
+void launcher(WebCFace::Client &wcli,
+              const std::vector<std::shared_ptr<Command>> &commands) {
     while (true) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         auto v = wcli.view("launcher");

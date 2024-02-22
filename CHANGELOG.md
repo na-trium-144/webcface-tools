@@ -1,3 +1,10 @@
+## [1.4.0] - 2024-02-22
+### Added
+* launcherでコマンドの環境変数を設定する機能 (#29)
+### Changed
+* tomlファイルをパースする時のエラーチェックを厳しくした(文字列ではなく数値やboolが入っているなど)
+* stdout_captureが有効のとき標準出力にも出力するようにした
+
 ## [1.3.1] - 2024-02-09
 ### Added
 * ReleaseするUbuntuのdebパッケージで lib/systemd/system/webcface-launcher.service をインストールするようにした (#25)
