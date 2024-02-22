@@ -1,5 +1,6 @@
 #pragma once
 #include <webcface/webcface.h>
+#include <spdlog/spdlog.h>
 #include <process.hpp>
 #include <string>
 #include <memory>
@@ -18,9 +19,12 @@ struct Command {
             const std::string &exec, const std::string &workdir,
             CaptureMode capture_stdout, bool stdout_is_utf8,
             const std::unordered_map<std::string, std::string> &env)
-        : name(name), exec(exec), workdir(workdir), capture_stdout(capture_stdout),
-          stdout_is_utf8(stdout_is_utf8), env(env) {
-        auto read_log = [this](const char *bytes, std::size_t n) {
+        : name(name), exec(exec), workdir(workdir),
+          capture_stdout(capture_stdout), stdout_is_utf8(stdout_is_utf8),
+          env(env) {
+        auto logger = spdlog::stdout_color_mt(name);
+        logger->set_pattern("[%n] %v");
+        auto read_log = [this, logger](const char *bytes, std::size_t n) {
 #ifdef WIN32
             if (!this->stdout_is_utf8) {
                 this->logs += acpToUTF8(bytes, static_cast<int>(n));
@@ -30,6 +34,7 @@ struct Command {
 #else
             this->logs.append(bytes, n);
 #endif
+            logger->info(std::string(bytes, n));
         };
         start = wcli.func(name + "_start")
                     .set([this, read_log] {
