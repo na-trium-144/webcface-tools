@@ -6,7 +6,11 @@
 #include <stdexcept>
 #include "launcher.h"
 #include "../common/common.h"
-#ifndef _WIN32
+
+#ifdef _WIN32
+inline bool shouldStop() { return false; }
+inline void initHandler() {}
+#else
 #include "signal_handler_unix.h"
 #endif
 
