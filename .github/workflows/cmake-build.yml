@@ -6,6 +6,7 @@ on:
   push:
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
+    - "v[0-9]+.[0-9]+.[0-9]+-[0-9]+"
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -43,7 +44,7 @@ jobs:
       run: >
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -DWEBCFACE_TOOLS_VERSION_SUFFIX=${{matrix.distro}}
+        -DWEBCFACE_TOOLS_VERSION_SUFFIX=${{matrix.distro}}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/')
         -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -128,7 +129,7 @@ jobs:
             apt-get update -q -y
             apt-get install -y ./*.deb
             rm ./*.deb
-            cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=${distro} -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
+            cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=${distro}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/') -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
             cmake --build build --config ${{env.BUILD_TYPE}}
             cd build
             cpack -G DEB
