@@ -42,6 +42,16 @@ FetchContent_Declare(cli11
 )
 FetchContent_MakeAvailable(cli11)
 
+FetchContent_Declare(ftxui
+  GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
+  GIT_TAG v5.0.0
+)
+FetchContent_GetProperties(ftxui)
+if(NOT ftxui_POPULATED)
+  FetchContent_Populate(ftxui)
+  add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 find_package(OpenCV QUIET)
 
 add_executable(webcface-launcher launcher/main.cc launcher/launcher.cc)
@@ -65,6 +75,19 @@ set_target_properties(webcface-send PROPERTIES
     INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
 )
 install(TARGETS webcface-send RUNTIME DESTINATION bin)
+
+add_executable(webcface-tui tui/main.cc)
+target_link_libraries(webcface-tui
+    webcface::webcface
+    CLI11
+    ftxui::screen
+    ftxui::dom
+    ftxui::component
+)
+set_target_properties(webcface-tui PROPERTIES
+    INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
+)
+install(TARGETS webcface-tui RUNTIME DESTINATION bin)
 
 if(OpenCV_FOUND)
     add_executable(webcface-cv-capture cv-capture/main.cc)
