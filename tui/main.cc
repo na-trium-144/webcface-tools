@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "../common/common.h"
+#include "components.h"
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace TUI")};
@@ -26,29 +27,22 @@ int main(int argc, char **argv) {
     webcface::Client wcli("", wcli_host, wcli_port);
     wcli.waitConnection();
     auto screen = ftxui::ScreenInteractive::Fullscreen();
+    auto container = ftxui::Container::Vertical({});
 
-    std::vector<ftxui::Component> components;
     for (auto &fp : fields) {
         auto fp_colon = fp.find(':');
         std::string member_name = fp.substr(0, fp_colon);
         std::string field_name = fp.substr(fp_colon + 1);
-        auto value_field = wcli.member(member_name).value(field_name);
-        value_field.appendListener(
-            [&screen] { screen.RequestAnimationFrame(); });
-        components.push_back(
-            ftxui::Renderer([member_name, field_name, value_field] {
-                return ftxui::hbox({
-                           ftxui::text(member_name),
-                           ftxui::text(":"),
-                           ftxui::text(field_name),
-                           ftxui::text(" = "),
-                           ftxui::text(std::to_string(value_field.get())) |
-                               ftxui::xflex,
-                       }) |
-                       ftxui::xflex;
-            }));
+        auto value = wcli.member(member_name).value(field_name);
+        value.appendListener(
+            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
+        addValueComponent(screen, container, value);
+ 
+        auto text = wcli.member(member_name).text(field_name);
+        text.appendListener(
+            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
+        addTextComponent(screen, container, text);
     }
 
-    auto layout = ftxui::Container::Vertical(components);
-    screen.Loop(layout);
+    screen.Loop(container);
 }
