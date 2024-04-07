@@ -15,16 +15,12 @@ inline ftxui::Component valueComponent(const webcface::Value &value) {
 inline void addValueComponent(ftxui::ScreenInteractive &screen,
                               ftxui::Component &container,
                               const webcface::Value &value) {
-    if (value.tryGet()) {
-        container->Add(valueComponent(value));
-    } else {
-        auto handle = std::make_shared<webcface::Value::EventHandle>();
-        *handle = value.prependListener([&screen, &container, value, handle] {
-            screen.Post(
-                [&container, value] { container->Add(valueComponent(value)); });
-            value.removeListener(*handle);
-        });
-    }
+    auto handle = std::make_shared<webcface::Value::EventHandle>();
+    *handle = value.prependListener([&screen, &container, value, handle] {
+        screen.Post(
+            [&container, value] { container->Add(valueComponent(value)); });
+        value.removeListener(*handle);
+    });
 }
 
 inline ftxui::Component textComponent(const webcface::Text &text) {
@@ -42,23 +38,42 @@ inline ftxui::Component textComponent(const webcface::Text &text) {
 inline void addTextComponent(ftxui::ScreenInteractive &screen,
                              ftxui::Component &container,
                              const webcface::Text &text) {
-    if (text.tryGet()) {
-        container->Add(textComponent(text));
-    } else {
-        auto handle = std::make_shared<webcface::Text::EventHandle>();
-        *handle = text.prependListener([&screen, &container, text, handle] {
-            screen.Post(
-                [&container, text] { container->Add(textComponent(text)); });
-            text.removeListener(*handle);
-        });
-    }
+    auto handle = std::make_shared<webcface::Text::EventHandle>();
+    *handle = text.prependListener([&screen, &container, text, handle] {
+        screen.Post(
+            [&container, text] { container->Add(textComponent(text)); });
+        text.removeListener(*handle);
+    });
 }
 
 class ViewUIContainer : public ftxui::ComponentBase {
     webcface::View view;
-    std::unordered_map<webcface::ViewComponent::Id, ftxui::Component>
-        ui_components;
+    std::unordered_map<std::string, ftxui::Component> ui_components;
 
+    static ftxui::Color convertColor(webcface::ViewColor color,
+                                     webcface::ViewColor default_color) {
+        if (color == webcface::ViewColor::inherit) {
+            color = default_color;
+        }
+        switch (color) {
+        case webcface::ViewColor::black:
+            return ftxui::Color::White;
+        case webcface::ViewColor::white:
+            return ftxui::Color::Black;
+        case webcface::ViewColor::gray:
+            return ftxui::Color::GrayDark;
+        case webcface::ViewColor::red:
+            return ftxui::Color::Red;
+        case webcface::ViewColor::orange:
+            return ftxui::Color::Orange1;
+        case webcface::ViewColor::yellow:
+            return ftxui::Color::Yellow;
+        case webcface::ViewColor::green:
+            return ftxui::Color::Green;
+        default:
+            return ftxui::Color::Default;
+        }
+    }
     // childrenにレイアウトを反映 (renderはしない)
     // childrenは2次元vectorのような感じになる
     // 要素が足りなければAddし、多ければDetachする
@@ -84,23 +99,32 @@ class ViewUIContainer : public ftxui::ComponentBase {
                     root->Add(ftxui::Container::Horizontal({}));
                 }
                 break;
-            case webcface::ViewComponentType::button:
-                if (!this->ui_components.count(
-                        cp.id()) /* && cp has changed */) {
-                    this->ui_components[cp.id()] = ftxui::Button({
-                        .text = cp.text(),
-                        // todo: color
-                    });
-                }
+            case webcface::ViewComponentType::button: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
+                if (!ui_cp /* && cp has changed */) {
+                    this->ui_components[cp.id()] = ui_cp = ftxui::Button(
+                        cp.text(),
+                        [func = cp.onClick()] {
+                            if (func) {
+                                func->runAsync();
+                            }
+                        },
+                        ftxui::ButtonOption::Animated(
+                            convertColor(cp.bgColor(),
+                                         webcface::ViewColor::green),
+                            convertColor(cp.textColor(),
+                                         webcface::ViewColor::black)));
+                }
                 root->ChildAt(row)->Add(ui_cp);
+                break;
+            }
             }
         }
     }
 
   public:
     explicit ViewUIContainer(const webcface::View &view)
-        : ftxui::ComponentBase(), view(view), row_selector(0), col_selectors() {
+        : ftxui::ComponentBase(), view(view) {
         this->Add(ftxui::Container::Vertical({}));
         view.prependListener([this] { this->updateLayout(); });
     }
@@ -130,7 +154,12 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 break;
             }
         }
-        return ftxui::vbox(elements);
+        return ftxui::window(ftxui::hbox({
+                                 ftxui::text(view.member().name()),
+                                 ftxui::text(":"),
+                                 ftxui::text(view.name()),
+                             }),
+                             ftxui::vbox(elements));
     }
 };
 inline ftxui::Component viewComponent(const webcface::View &view) {
@@ -139,14 +168,10 @@ inline ftxui::Component viewComponent(const webcface::View &view) {
 inline void addViewComponent(ftxui::ScreenInteractive &screen,
                              ftxui::Component &container,
                              const webcface::View &view) {
-    if (view.tryGet()) {
-        container->Add(viewComponent(view));
-    } else {
-        auto handle = std::make_shared<webcface::View::EventHandle>();
-        *handle = view.prependListener([&screen, &container, view, handle] {
-            screen.Post(
-                [&container, view] { container->Add(viewComponent(view)); });
-            view.removeListener(*handle);
-        });
-    }
+    auto handle = std::make_shared<webcface::View::EventHandle>();
+    *handle = view.prependListener([&screen, &container, view, handle] {
+        screen.Post(
+            [&container, view] { container->Add(viewComponent(view)); });
+        view.removeListener(*handle);
+    });
 }

@@ -25,7 +25,6 @@ int main(int argc, char **argv) {
     CLI11_PARSE(app, argc, argv);
 
     webcface::Client wcli("", wcli_host, wcli_port);
-    wcli.waitConnection();
     auto screen = ftxui::ScreenInteractive::Fullscreen();
     auto container = ftxui::Container::Vertical({});
 
@@ -42,7 +41,13 @@ int main(int argc, char **argv) {
         text.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
         addTextComponent(screen, container, text);
+
+        auto view = wcli.member(member_name).view(field_name);
+        view.appendListener(
+            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
+        addViewComponent(screen, container, view);
     }
+    wcli.waitConnection();
 
     screen.Loop(container);
 }
