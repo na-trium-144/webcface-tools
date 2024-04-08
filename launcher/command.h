@@ -27,12 +27,13 @@ struct Command : std::enable_shared_from_this<Command> {
     }
     // shared_from_thisを使うためコンストラクタと別
     void initFunc(WebCFace::Client &wcli) {
-        start_f = wcli.func(name + "_start")
-                    .set([cmd = shared_from_this()] { cmd->start(); })
-                    .hidden(true);
-        terminate_f = wcli.func(name + "_terminate")
-                        .set([cmd = shared_from_this()] { cmd->kill(); })
-                        .hidden(true);
+        start_f = wcli.func(name + "/start").set([cmd = shared_from_this()] {
+            cmd->start();
+        });
+        terminate_f =
+            wcli.func(name + "/terminate").set([cmd = shared_from_this()] {
+                cmd->kill();
+            });
     }
     void start() {
         auto read_log = [cmd = shared_from_this()](const char *bytes,
