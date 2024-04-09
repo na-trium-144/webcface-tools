@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
         value.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
         addValueComponent(screen, container, value);
- 
+
         auto text = wcli.member(member_name).text(field_name);
         text.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
@@ -49,5 +49,7 @@ int main(int argc, char **argv) {
     }
     wcli.waitConnection();
 
-    screen.Loop(container);
+    screen.Loop(ftxui::Renderer(container, [&] {
+        return container->Render() | ftxui::vscroll_indicator | ftxui::yframe;
+    }));
 }

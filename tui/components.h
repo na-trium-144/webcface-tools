@@ -1,7 +1,8 @@
 #pragma once
+#include "color.h"
 
 inline ftxui::Component valueComponent(const webcface::Value &value) {
-    return ftxui::Renderer([value] {
+    return ftxui::Renderer([value](bool focused) {
         return ftxui::hbox({
                    ftxui::text(value.member().name()),
                    ftxui::text(":"),
@@ -9,7 +10,7 @@ inline ftxui::Component valueComponent(const webcface::Value &value) {
                    ftxui::text(" = "),
                    ftxui::text(std::to_string(value.get())) | ftxui::xflex,
                }) |
-               ftxui::xflex;
+               ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);
     });
 }
 inline void addValueComponent(ftxui::ScreenInteractive &screen,
@@ -24,7 +25,7 @@ inline void addValueComponent(ftxui::ScreenInteractive &screen,
 }
 
 inline ftxui::Component textComponent(const webcface::Text &text) {
-    return ftxui::Renderer([text] {
+    return ftxui::Renderer([text](bool focused) {
         return ftxui::hbox({
                    ftxui::text(text.member().name()),
                    ftxui::text(":"),
@@ -32,7 +33,7 @@ inline ftxui::Component textComponent(const webcface::Text &text) {
                    ftxui::text(" = "),
                    ftxui::text(text.get()) | ftxui::xflex,
                }) |
-               ftxui::xflex;
+               ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);
     });
 }
 inline void addTextComponent(ftxui::ScreenInteractive &screen,
@@ -49,31 +50,9 @@ inline void addTextComponent(ftxui::ScreenInteractive &screen,
 class ViewUIContainer : public ftxui::ComponentBase {
     webcface::View view;
     std::unordered_map<std::string, ftxui::Component> ui_components;
+    int focused_row;
 
-    static ftxui::Color convertColor(webcface::ViewColor color,
-                                     webcface::ViewColor default_color) {
-        if (color == webcface::ViewColor::inherit) {
-            color = default_color;
-        }
-        switch (color) {
-        case webcface::ViewColor::black:
-            return ftxui::Color::White;
-        case webcface::ViewColor::white:
-            return ftxui::Color::Black;
-        case webcface::ViewColor::gray:
-            return ftxui::Color::GrayDark;
-        case webcface::ViewColor::red:
-            return ftxui::Color::Red;
-        case webcface::ViewColor::orange:
-            return ftxui::Color::Orange1;
-        case webcface::ViewColor::yellow:
-            return ftxui::Color::Yellow;
-        case webcface::ViewColor::green:
-            return ftxui::Color::Green;
-        default:
-            return ftxui::Color::Default;
-        }
-    }
+
     // childrenにレイアウトを反映 (renderはしない)
     // childrenは2次元vectorのような感じになる
     // 要素が足りなければAddし、多ければDetachする
@@ -92,6 +71,13 @@ class ViewUIContainer : public ftxui::ComponentBase {
             case webcface::ViewComponentType::text:
                 break;
             case webcface::ViewComponentType::new_line:
+                // 空の行もfocusを取れるようにする(仮)
+                if (root->ChildAt(row)->ChildCount() == 0) {
+                    root->ChildAt(row)->Add(
+                        ftxui::Renderer([](bool /*focused*/) {
+                            return ftxui::emptyElement();
+                        }));
+                }
                 if (root->ChildAt(row)->ChildCount() > 0) {
                     row++;
                 }
@@ -102,6 +88,22 @@ class ViewUIContainer : public ftxui::ComponentBase {
             case webcface::ViewComponentType::button: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (!ui_cp /* && cp has changed */) {
+                    auto option = ftxui::ButtonOption::Animated(
+                        convertColor(cp.bgColor(), webcface::ViewColor::green),
+                        convertColor(cp.textColor(),
+                                     webcface::ViewColor::black),
+                        convertColor(cp.bgColor(), webcface::ViewColor::green,
+                                     true),
+                        convertColor(cp.textColor(),
+                                     webcface::ViewColor::black));
+                    option.transform = [](const ftxui::EntryState &s) {
+                        if (s.focused) {
+                            return ftxui::text("[" + s.label + "]") |
+                                   ftxui::bold;
+                        } else {
+                            return ftxui::text("(" + s.label + ")");
+                        }
+                    };
                     this->ui_components[cp.id()] = ui_cp = ftxui::Button(
                         cp.text(),
                         [func = cp.onClick()] {
@@ -109,11 +111,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                                 func->runAsync();
                             }
                         },
-                        ftxui::ButtonOption::Animated(
-                            convertColor(cp.bgColor(),
-                                         webcface::ViewColor::green),
-                            convertColor(cp.textColor(),
-                                         webcface::ViewColor::black)));
+                        option);
                 }
                 root->ChildAt(row)->Add(ui_cp);
                 break;
@@ -124,9 +122,10 @@ class ViewUIContainer : public ftxui::ComponentBase {
 
   public:
     explicit ViewUIContainer(const webcface::View &view)
-        : ftxui::ComponentBase(), view(view) {
-        this->Add(ftxui::Container::Vertical({}));
+        : ftxui::ComponentBase(), view(view), focused_row(0) {
+        this->Add(ftxui::Container::Vertical({}, &focused_row));
         view.prependListener([this] { this->updateLayout(); });
+        this->updateLayout();
     }
     ~ViewUIContainer() override {}
     ViewUIContainer(const ViewUIContainer &) = delete;
@@ -134,6 +133,13 @@ class ViewUIContainer : public ftxui::ComponentBase {
     ViewUIContainer &operator=(const ViewUIContainer &) = delete;
     ViewUIContainer &operator=(ViewUIContainer &&) = delete;
 
+    ftxui::Element RenderCol(const std::vector<ftxui::Element> &elements_col,
+                             std::size_t current_row) const {
+        return ftxui::flexbox(elements_col) |
+               (this->Focused() && focused_row == current_row
+                    ? ftxui::bgcolor(ftxui::Color::GrayDark) | ftxui::focus
+                    : ftxui::nothing);
+    }
     // renderする (childrenのレイアウトは無視)
     ftxui::Element Render() override {
         std::vector<ftxui::Element> elements, elements_col;
@@ -143,17 +149,19 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 elements_col.push_back(ftxui::text(cp.text()));
                 break;
             case webcface::ViewComponentType::new_line:
-                elements.push_back(ftxui::hbox(elements_col));
+                elements.push_back(RenderCol(elements_col, elements.size()));
                 elements_col.clear();
                 break;
+
             case webcface::ViewComponentType::button:
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
-                    elements.push_back(ui_cp->Render());
+                    elements_col.push_back(ui_cp->Render());
                 }
                 break;
             }
         }
+        elements.push_back(RenderCol(elements_col, elements.size()));
         return ftxui::window(ftxui::hbox({
                                  ftxui::text(view.member().name()),
                                  ftxui::text(":"),
