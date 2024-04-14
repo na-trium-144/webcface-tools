@@ -5,6 +5,7 @@
 class ViewUIContainer : public ftxui::ComponentBase {
     webcface::View view;
     std::unordered_map<std::string, ftxui::Component> ui_components;
+    std::unordered_map<std::string, webcface::ViewComponent> prev_components;
     int focused_row;
     std::shared_ptr<ftxui::Element> status;
 
@@ -42,7 +43,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 break;
             case webcface::ViewComponentType::button: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
-                if (!ui_cp /* && cp has changed */) {
+                if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                    this->prev_components[cp.id()] = cp;
                     auto option = ftxui::ButtonOption::Animated(
                         convertColor(cp.bgColor(), webcface::ViewColor::green),
                         convertColor(cp.textColor(),
