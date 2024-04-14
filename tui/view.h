@@ -8,6 +8,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
     std::unordered_map<std::string, webcface::ViewComponent> prev_components;
     int focused_row;
     std::shared_ptr<ftxui::Element> status;
+    std::vector<bool> has_no_component;
 
     // childrenにレイアウトを反映 (renderはしない)
     // childrenは2次元vectorのような感じになる
@@ -17,9 +18,11 @@ class ViewUIContainer : public ftxui::ComponentBase {
         // childrenを空にする (行は削除しない)
         for (std::size_t row = 0; row < root->ChildCount(); row++) {
             root->ChildAt(row)->DetachAllChildren();
+            has_no_component[row] = false;
         }
         if (root->ChildCount() == 0) {
             root->Add(ftxui::Container::Horizontal({}));
+            has_no_component.push_back(false);
         }
         std::size_t row = 0;
         for (const auto &cp : this->view.get()) {
@@ -29,6 +32,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
             case webcface::ViewComponentType::new_line:
                 // 空の行もfocusを取れるようにする(仮)
                 if (root->ChildAt(row)->ChildCount() == 0) {
+                    has_no_component[row] = true;
                     root->ChildAt(row)->Add(
                         ftxui::Renderer([](bool /*focused*/) {
                             return ftxui::emptyElement();
@@ -39,6 +43,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 }
                 if (root->ChildCount() <= row) {
                     root->Add(ftxui::Container::Horizontal({}));
+                    has_no_component.push_back(false);
                 }
                 break;
             case webcface::ViewComponentType::button: {
@@ -55,7 +60,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                                      webcface::ViewColor::black));
                     option.transform = [](const ftxui::EntryState &s) {
                         if (s.focused) {
-                            return ftxui::text("[" + s.label + "]") |
+                            return ftxui::text("(" + s.label + ")") |
                                    ftxui::bold;
                         } else {
                             return ftxui::text("(" + s.label + ")");
@@ -73,7 +78,60 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 root->ChildAt(row)->Add(ui_cp);
                 break;
             }
+            case webcface::ViewComponentType::text_input: {
+                ftxui::Component ui_cp = this->ui_components[cp.id()];
+                if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                    this->prev_components[cp.id()] = cp;
+                    auto bind_ref = std::make_shared<std::string>();
+                    if (cp.bind()) {
+                        *bind_ref = cp.bind()->get();
+                        cp.bind()->appendListener(
+                            [bind_ref](const auto &b) { *bind_ref = b; });
+                    }
+                    auto content_ref = std::make_shared<std::string>();
+                    ftxui::InputOption option{};
+                    option.placeholder = ftxui::StringRef(bind_ref.get());
+                    option.content = ftxui::StringRef(content_ref.get());
+                    if (cp.onChange()) {
+                        option.on_enter = [content_ref, func = *cp.onChange(),
+                                           status = this->status] {
+                            runAsync(func, status, *content_ref);
+                            content_ref->clear();
+                        };
+                    }
+                    option.transform = [](ftxui::InputState state) {
+                        state.element = ftxui::hbox({
+                            ftxui::text("["),
+                            state.element |
+                                (state.focused ? ftxui::bold : ftxui::nothing) |
+                                ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 10),
+                            ftxui::text("]"),
+                        });
+                        state.element |= ftxui::color(ftxui::Color::White);
+                        if (state.is_placeholder) {
+                            state.element |= ftxui::dim;
+                        }
+                        if (state.focused) {
+                            state.element |=
+                                ftxui::bgcolor(ftxui::Color::Black);
+                        }
+                        if (state.hovered) {
+                            state.element |=
+                                ftxui::bgcolor(ftxui::Color::GrayDark);
+                        }
+                        return state.element;
+                    };
+                    this->ui_components[cp.id()] = ui_cp = ftxui::Input(option);
+                }
+                root->ChildAt(row)->Add(ui_cp);
+                break;
             }
+            }
+        }
+        if (root->ChildAt(row)->ChildCount() == 0) {
+            has_no_component[row] = true;
+            root->ChildAt(row)->Add(ftxui::Renderer(
+                [](bool /*focused*/) { return ftxui::emptyElement(); }));
         }
     }
 
@@ -93,7 +151,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
 
     ftxui::Element RenderCol(const std::vector<ftxui::Element> &elements_col,
                              std::size_t current_row) const {
-        if (this->Focused() && focused_row == current_row) {
+        if (this->Focused() && focused_row == current_row &&
+            has_no_component[current_row]) {
             return ftxui::flexbox(elements_col) | ftxui::bold | ftxui::focus;
             // ftxui::bgcolor(ftxui::Color::GrayDark)
         } else {
@@ -112,7 +171,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 elements.push_back(RenderCol(elements_col, elements.size()));
                 elements_col.clear();
                 break;
-            case webcface::ViewComponentType::button: {
+            case webcface::ViewComponentType::button:
+            case webcface::ViewComponentType::text_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
                     elements_col.push_back(ui_cp->Render());
