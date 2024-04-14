@@ -1,57 +1,12 @@
 #pragma once
 #include "color.h"
-
-inline ftxui::Component valueComponent(const webcface::Value &value) {
-    return ftxui::Renderer([value](bool focused) {
-        return ftxui::hbox({
-                   ftxui::text(value.member().name()),
-                   ftxui::text(":"),
-                   ftxui::text(value.name()),
-                   ftxui::text(" = "),
-                   ftxui::text(std::to_string(value.get())) | ftxui::xflex,
-               }) |
-               ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);
-    });
-}
-inline void addValueComponent(ftxui::ScreenInteractive &screen,
-                              ftxui::Component &container,
-                              const webcface::Value &value) {
-    auto handle = std::make_shared<webcface::Value::EventHandle>();
-    *handle = value.prependListener([&screen, &container, value, handle] {
-        screen.Post(
-            [&container, value] { container->Add(valueComponent(value)); });
-        value.removeListener(*handle);
-    });
-}
-
-inline ftxui::Component textComponent(const webcface::Text &text) {
-    return ftxui::Renderer([text](bool focused) {
-        return ftxui::hbox({
-                   ftxui::text(text.member().name()),
-                   ftxui::text(":"),
-                   ftxui::text(text.name()),
-                   ftxui::text(" = "),
-                   ftxui::text(text.get()) | ftxui::xflex,
-               }) |
-               ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);
-    });
-}
-inline void addTextComponent(ftxui::ScreenInteractive &screen,
-                             ftxui::Component &container,
-                             const webcface::Text &text) {
-    auto handle = std::make_shared<webcface::Text::EventHandle>();
-    *handle = text.prependListener([&screen, &container, text, handle] {
-        screen.Post(
-            [&container, text] { container->Add(textComponent(text)); });
-        text.removeListener(*handle);
-    });
-}
+#include "func.h"
 
 class ViewUIContainer : public ftxui::ComponentBase {
     webcface::View view;
     std::unordered_map<std::string, ftxui::Component> ui_components;
     int focused_row;
-
+    std::shared_ptr<ftxui::Element> status;
 
     // childrenにレイアウトを反映 (renderはしない)
     // childrenは2次元vectorのような感じになる
@@ -106,9 +61,9 @@ class ViewUIContainer : public ftxui::ComponentBase {
                     };
                     this->ui_components[cp.id()] = ui_cp = ftxui::Button(
                         cp.text(),
-                        [func = cp.onClick()] {
+                        [func = cp.onClick(), status = this->status] {
                             if (func) {
-                                func->runAsync();
+                                runAsync(*func, status);
                             }
                         },
                         option);
@@ -121,8 +76,9 @@ class ViewUIContainer : public ftxui::ComponentBase {
     }
 
   public:
-    explicit ViewUIContainer(const webcface::View &view)
-        : ftxui::ComponentBase(), view(view), focused_row(0) {
+    explicit ViewUIContainer(const webcface::View &view,
+                             std::shared_ptr<ftxui::Element> status)
+        : ftxui::ComponentBase(), view(view), focused_row(0), status(status) {
         this->Add(ftxui::Container::Vertical({}, &focused_row));
         view.prependListener([this] { this->updateLayout(); });
         this->updateLayout();
@@ -135,10 +91,12 @@ class ViewUIContainer : public ftxui::ComponentBase {
 
     ftxui::Element RenderCol(const std::vector<ftxui::Element> &elements_col,
                              std::size_t current_row) const {
-        return ftxui::flexbox(elements_col) |
-               (this->Focused() && focused_row == current_row
-                    ? ftxui::bgcolor(ftxui::Color::GrayDark) | ftxui::focus
-                    : ftxui::nothing);
+        if (this->Focused() && focused_row == current_row) {
+            return ftxui::flexbox(elements_col) | ftxui::bold | ftxui::focus;
+            // ftxui::bgcolor(ftxui::Color::GrayDark)
+        } else {
+            return ftxui::flexbox(elements_col);
+        }
     }
     // renderする (childrenのレイアウトは無視)
     ftxui::Element Render() override {
@@ -152,13 +110,13 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 elements.push_back(RenderCol(elements_col, elements.size()));
                 elements_col.clear();
                 break;
-
-            case webcface::ViewComponentType::button:
+            case webcface::ViewComponentType::button: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
                     elements_col.push_back(ui_cp->Render());
                 }
                 break;
+            }
             }
         }
         elements.push_back(RenderCol(elements_col, elements.size()));
@@ -170,16 +128,19 @@ class ViewUIContainer : public ftxui::ComponentBase {
                              ftxui::vbox(elements));
     }
 };
-inline ftxui::Component viewComponent(const webcface::View &view) {
-    return std::make_shared<ViewUIContainer>(view);
+inline ftxui::Component viewComponent(const webcface::View &view,
+                                      std::shared_ptr<ftxui::Element> status) {
+    return std::make_shared<ViewUIContainer>(view, status);
 }
 inline void addViewComponent(ftxui::ScreenInteractive &screen,
                              ftxui::Component &container,
-                             const webcface::View &view) {
+                             const webcface::View &view,
+                             std::shared_ptr<ftxui::Element> status) {
     auto handle = std::make_shared<webcface::View::EventHandle>();
-    *handle = view.prependListener([&screen, &container, view, handle] {
-        screen.Post(
-            [&container, view] { container->Add(viewComponent(view)); });
+    *handle = view.prependListener([&screen, &container, view, handle, status] {
+        screen.Post([&container, view, status] {
+            container->Add(viewComponent(view, status));
+        });
         view.removeListener(*handle);
     });
 }

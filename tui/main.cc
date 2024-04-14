@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 #include "../common/common.h"
-#include "components.h"
+#include "value.h"
+#include "text.h"
+#include "view.h"
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace TUI")};
@@ -27,6 +29,9 @@ int main(int argc, char **argv) {
     webcface::Client wcli("", wcli_host, wcli_port);
     auto screen = ftxui::ScreenInteractive::Fullscreen();
     auto container = ftxui::Container::Vertical({});
+    auto status = std::make_shared<ftxui::Element>(
+        ftxui::text("↑↓ = move, Enter = click, Ctrl+C = quit") |
+        ftxui::color(ftxui::Color::Black));
 
     for (auto &fp : fields) {
         auto fp_colon = fp.find(':');
@@ -35,21 +40,25 @@ int main(int argc, char **argv) {
         auto value = wcli.member(member_name).value(field_name);
         value.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addValueComponent(screen, container, value);
+        addValueComponent(screen, container, value, status);
 
         auto text = wcli.member(member_name).text(field_name);
         text.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addTextComponent(screen, container, text);
+        addTextComponent(screen, container, text, status);
 
         auto view = wcli.member(member_name).view(field_name);
         view.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addViewComponent(screen, container, view);
+        addViewComponent(screen, container, view, status);
     }
     wcli.waitConnection();
 
     screen.Loop(ftxui::Renderer(container, [&] {
-        return container->Render() | ftxui::vscroll_indicator | ftxui::yframe;
+        return ftxui::vbox({container->Render() | ftxui::vscroll_indicator |
+                                ftxui::yframe | ftxui::yflex,
+                            (*status ? *status : ftxui::emptyElement()) |
+                                ftxui::bgcolor(ftxui::Color::White) |
+                                ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1)});
     }));
 }
