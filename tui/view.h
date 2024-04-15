@@ -234,19 +234,19 @@ class ViewUIContainer : public ftxui::ComponentBase {
                             break;
                         case webcface::ViewComponentType::text_input:
                             if (cp.min()) {
-                                ss << "min = " << *cp.min() << " chars, ";
+                                ss << "min. " << *cp.min() << " chars, ";
                             }
                             if (cp.max()) {
-                                ss << "max = " << *cp.max() << " chars, ";
+                                ss << "max. " << *cp.max() << " chars, ";
                             }
                             ss << "Press Enter to send";
                             break;
                         case webcface::ViewComponentType::decimal_input:
                             if (cp.min()) {
-                                ss << "min = " << *cp.min() << ", ";
+                                ss << "min. " << *cp.min() << ", ";
                             }
                             if (cp.max()) {
-                                ss << "max = " << *cp.max() << ", ";
+                                ss << "max. " << *cp.max() << ", ";
                             }
                             ss << "Press Enter to send";
                             break;
