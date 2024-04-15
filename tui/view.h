@@ -79,7 +79,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 root->ChildAt(row)->Add(ui_cp);
                 break;
             }
-            case webcface::ViewComponentType::text_input: {
+            case webcface::ViewComponentType::text_input:
+            case webcface::ViewComponentType::decimal_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (!ui_cp && cp != this->prev_components[cp.id()]) {
                     this->prev_components[cp.id()] = cp;
@@ -90,30 +91,62 @@ class ViewUIContainer : public ftxui::ComponentBase {
                             [bind_ref](const auto &b) { *bind_ref = b; });
                     }
                     auto content_ref = std::make_shared<std::string>();
+                    auto is_error = std::make_shared<bool>(false);
                     ftxui::InputOption option{};
                     option.content = ftxui::StringRef(content_ref.get());
+                    option.multiline = false;
+                    option.on_change = [cp, is_error, content_ref] {
+                        *is_error = true;
+                        switch (cp.type()) {
+                        case webcface::ViewComponentType::text_input:
+                            if ((cp.min() && content_ref->size() < cp.min()) ||
+                                (cp.max() && content_ref->size() > cp.max())) {
+                                return;
+                            }
+                            break;
+                        case webcface::ViewComponentType::decimal_input: {
+                            double val = 0;
+                            for (char c : *content_ref) {
+                                if ((c < '0' || c > '9') && c != '.') {
+                                    return;
+                                }
+                            }
+                            try {
+                                val = std::stod(*content_ref);
+                            } catch (const std::exception &e) {
+                                return;
+                            }
+                            if ((cp.min() && val < cp.min()) ||
+                                (cp.max() && val > cp.max())) {
+                                return;
+                            }
+                            break;
+                        }
+                        default:
+                            break;
+                        }
+                        *is_error = false;
+                    };
                     if (cp.onChange()) {
                         option.on_enter = [content_ref, func = *cp.onChange(),
-                                           result = this->result] {
-                            while (content_ref->find('\n') !=
-                                   std::string::npos) {
-                                *content_ref = content_ref->substr(
-                                                   0, content_ref->find('\n')) +
-                                               content_ref->substr(
-                                                   content_ref->find('\n') + 1);
+                                           is_error, result = this->result] {
+                            if (!*is_error) {
+                                runAsync(func, result, *content_ref);
                             }
-                            runAsync(func, result, *content_ref);
                         };
                     }
-                    option.transform = [=](ftxui::InputState state) {
+                    option.transform = [content_ref, bind_ref,
+                                        is_error](ftxui::InputState state) {
                         state.element = ftxui::hbox({
                             ftxui::text("["),
                             state.element |
                                 (state.focused ? ftxui::bold : ftxui::nothing) |
-                                ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 10),
+                                ftxui::xflex,
                             ftxui::text("]"),
                         });
-                        state.element |= ftxui::color(ftxui::Color::White);
+                        state.element |=
+                            ftxui::color(*is_error ? ftxui::Color::Red
+                                                   : ftxui::Color::White);
                         if (state.focused) {
                             state.element |=
                                 ftxui::bgcolor(ftxui::Color::Black);
@@ -126,7 +159,12 @@ class ViewUIContainer : public ftxui::ComponentBase {
                         }
                         return state.element;
                     };
-                    this->ui_components[cp.id()] = ui_cp = ftxui::Input(option);
+                    auto ui_input = ftxui::Input(option);
+                    this->ui_components[cp.id()] = ui_cp =
+                        ftxui::Renderer(ui_input, [ui_input] {
+                            return ui_input->Render() |
+                                   ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 10);
+                        });
                 }
                 root->ChildAt(row)->Add(ui_cp);
                 break;
@@ -183,19 +221,37 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 elements_col.clear();
                 break;
             case webcface::ViewComponentType::button:
-            case webcface::ViewComponentType::text_input: {
+            case webcface::ViewComponentType::text_input:
+            case webcface::ViewComponentType::decimal_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
                     elements_col.push_back(ui_cp->Render());
                     if (ui_cp->Focused()) {
+                        std::stringstream ss;
                         switch (cp.type()) {
                         case webcface::ViewComponentType::button:
-                            *help = "Enter = click button";
+                            ss << "Enter = click button";
                             break;
                         case webcface::ViewComponentType::text_input:
-                            *help = "Input text and press Enter to send";
+                            if (cp.min()) {
+                                ss << "min = " << *cp.min() << " chars, ";
+                            }
+                            if (cp.max()) {
+                                ss << "max = " << *cp.max() << " chars, ";
+                            }
+                            ss << "Press Enter to send";
+                            break;
+                        case webcface::ViewComponentType::decimal_input:
+                            if (cp.min()) {
+                                ss << "min = " << *cp.min() << ", ";
+                            }
+                            if (cp.max()) {
+                                ss << "max = " << *cp.max() << ", ";
+                            }
+                            ss << "Press Enter to send";
                             break;
                         }
+                        *help = ss.str();
                     }
                 }
                 break;
