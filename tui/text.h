@@ -1,8 +1,12 @@
 #pragma once
 
 inline ftxui::Component textComponent(const webcface::Text &text,
-                                      std::shared_ptr<ftxui::Element> status) {
-    return ftxui::Renderer([text, status](bool focused) {
+                                      std::shared_ptr<std::string> help,
+                                      std::shared_ptr<ftxui::Element> result) {
+    return ftxui::Renderer([text, help](bool focused) {
+        if (focused) {
+            *help = defaultStatus();
+        }
         return ftxui::hbox({
                    ftxui::text(text.member().name()),
                    ftxui::text(":"),
@@ -17,12 +21,14 @@ inline ftxui::Component textComponent(const webcface::Text &text,
 inline void addTextComponent(ftxui::ScreenInteractive &screen,
                              ftxui::Component &container,
                              const webcface::Text &text,
-                             std::shared_ptr<ftxui::Element> status) {
+                             std::shared_ptr<std::string> help,
+                             std::shared_ptr<ftxui::Element> result) {
     auto handle = std::make_shared<webcface::Text::EventHandle>();
-    *handle = text.prependListener([&screen, &container, text, handle, status] {
-        screen.Post([&container, text, status] {
-            container->Add(textComponent(text, status));
+    *handle =
+        text.prependListener([&screen, &container, text, handle, help, result] {
+            screen.Post([&container, text, help, result] {
+                container->Add(textComponent(text, help, result));
+            });
+            text.removeListener(*handle);
         });
-        text.removeListener(*handle);
-    });
 }

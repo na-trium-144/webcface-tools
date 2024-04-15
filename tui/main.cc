@@ -29,9 +29,8 @@ int main(int argc, char **argv) {
     webcface::Client wcli("", wcli_host, wcli_port);
     auto screen = ftxui::ScreenInteractive::Fullscreen();
     auto container = ftxui::Container::Vertical({});
-    auto status = std::make_shared<ftxui::Element>(
-        ftxui::text("↑↓ = move, Enter = click, Ctrl+C = quit") |
-        ftxui::color(ftxui::Color::Black));
+    auto help = std::make_shared<std::string>();
+    auto result = std::make_shared<ftxui::Element>();
 
     for (auto &fp : fields) {
         auto fp_colon = fp.find(':');
@@ -40,24 +39,34 @@ int main(int argc, char **argv) {
         auto value = wcli.member(member_name).value(field_name);
         value.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addValueComponent(screen, container, value, status);
+        addValueComponent(screen, container, value, help, result);
 
         auto text = wcli.member(member_name).text(field_name);
         text.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addTextComponent(screen, container, text, status);
+        addTextComponent(screen, container, text, help, result);
 
         auto view = wcli.member(member_name).view(field_name);
         view.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addViewComponent(screen, container, view, status);
+        addViewComponent(screen, container, view, help, result);
     }
     wcli.waitConnection();
 
+    std::string help_prev = "";
+    ftxui::Element result_prev = nullptr;
+    ftxui::Element status = nullptr;
     screen.Loop(ftxui::Renderer(container, [&] {
+        if(*help != help_prev){
+            help_prev = *help;
+            status = ftxui::text(*help) | ftxui::color(ftxui::Color::Black);
+        }
+        if(*result != result_prev){
+            status = result_prev = *result;
+        }
         return ftxui::vbox({container->Render() | ftxui::vscroll_indicator |
                                 ftxui::yframe | ftxui::yflex,
-                            (*status ? *status : ftxui::emptyElement()) |
+                            (status ? status : ftxui::emptyElement()) |
                                 ftxui::bgcolor(ftxui::Color::White) |
                                 ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1)});
     }));
