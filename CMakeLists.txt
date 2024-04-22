@@ -21,65 +21,28 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 find_package(webcface 1.3 CONFIG)
+find_package(OpenCV QUIET)
 
 include(FetchContent)
-
 FetchContent_Declare(tiny-process-library
     GIT_REPOSITORY https://gitlab.com/eidheim/tiny-process-library.git
     GIT_TAG master
 )
 FetchContent_MakeAvailable(tiny-process-library)
-
 FetchContent_Declare(tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
     GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
-
 FetchContent_Declare(cli11
     GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
     GIT_TAG v2.3.2
 )
 FetchContent_MakeAvailable(cli11)
 
-find_package(OpenCV QUIET)
-
-add_executable(webcface-launcher launcher/main.cc launcher/launcher.cc)
-target_link_libraries(webcface-launcher
-    webcface::webcface
-    tiny-process-library
-    tomlplusplus_tomlplusplus
-    CLI11
-)
-set_target_properties(webcface-launcher PROPERTIES
-    INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
-)
-install(TARGETS webcface-launcher RUNTIME DESTINATION bin)
-
-add_executable(webcface-send send/main.cc)
-target_link_libraries(webcface-send
-    webcface::webcface
-    CLI11
-)
-set_target_properties(webcface-send PROPERTIES
-    INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
-)
-install(TARGETS webcface-send RUNTIME DESTINATION bin)
-
-if(OpenCV_FOUND)
-    add_executable(webcface-cv-capture cv-capture/main.cc)
-    target_link_libraries(webcface-cv-capture
-        webcface::webcface
-        CLI11
-        ${OpenCV_LIBS}
-    )
-    set_target_properties(webcface-cv-capture PROPERTIES
-        INSTALL_RPATH "$ORIGIN/../lib/;$ORIGIN/;@loader_path/../lib/;@loader_path/"
-    )
-    install(TARGETS webcface-cv-capture RUNTIME DESTINATION bin)
-else()
-    message(STATUS "OpenCV Not Found, Skipping target webcface-cv-capture")
-endif()
+foreach(dir launcher send cv-capture)
+    add_subdirectory(${dir})
+endforeach()
 
 if(WEBCFACE_TOOLS_INSTALL_SERVICE)
     configure_file(
