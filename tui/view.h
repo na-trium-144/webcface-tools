@@ -10,6 +10,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
     std::vector<bool> has_no_component;
     std::shared_ptr<std::string> help;
     std::shared_ptr<ftxui::Element> result;
+    bool light;
 
     // childrenにレイアウトを反映 (renderはしない)
     // childrenは2次元vectorのような感じになる
@@ -52,13 +53,14 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 if (!ui_cp && cp != this->prev_components[cp.id()]) {
                     this->prev_components[cp.id()] = cp;
                     auto option = ftxui::ButtonOption::Animated(
-                        convertColor(cp.bgColor(), webcface::ViewColor::green),
-                        convertColor(cp.textColor(),
-                                     webcface::ViewColor::black),
                         convertColor(cp.bgColor(), webcface::ViewColor::green,
-                                     true),
-                        convertColor(cp.textColor(),
-                                     webcface::ViewColor::black));
+                                     light),
+                        convertColor(cp.textColor(), webcface::ViewColor::black,
+                                     light),
+                        convertColor(cp.bgColor(), webcface::ViewColor::green,
+                                     light, true),
+                        convertColor(cp.textColor(), webcface::ViewColor::black,
+                                     light));
                     option.transform = [](const ftxui::EntryState &s) {
                         if (s.focused) {
                             return ftxui::text("(" + s.label + ")") |
@@ -80,7 +82,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 break;
             }
             case webcface::ViewComponentType::text_input:
-            case webcface::ViewComponentType::decimal_input: {
+            case webcface::ViewComponentType::decimal_input:
+            case webcface::ViewComponentType::number_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (!ui_cp && cp != this->prev_components[cp.id()]) {
                     this->prev_components[cp.id()] = cp;
@@ -122,6 +125,24 @@ class ViewUIContainer : public ftxui::ComponentBase {
                             }
                             break;
                         }
+                        case webcface::ViewComponentType::number_input: {
+                            int val = 0;
+                            for (char c : *content_ref) {
+                                if (c < '0' || c > '9') {
+                                    return;
+                                }
+                            }
+                            try {
+                                val = std::stoi(*content_ref);
+                            } catch (const std::exception &e) {
+                                return;
+                            }
+                            if ((cp.min() && val < cp.min()) ||
+                                (cp.max() && val > cp.max())) {
+                                return;
+                            }
+                            break;
+                        }
                         default:
                             break;
                         }
@@ -135,8 +156,9 @@ class ViewUIContainer : public ftxui::ComponentBase {
                             }
                         };
                     }
-                    option.transform = [content_ref, bind_ref,
-                                        is_error](ftxui::InputState state) {
+                    option.transform = [content_ref, bind_ref, is_error,
+                                        light = this->light](
+                                           ftxui::InputState state) {
                         state.element = ftxui::hbox({
                             ftxui::text("["),
                             state.element |
@@ -144,18 +166,21 @@ class ViewUIContainer : public ftxui::ComponentBase {
                                 ftxui::xflex,
                             ftxui::text("]"),
                         });
-                        state.element |=
-                            ftxui::color(*is_error ? ftxui::Color::Red
-                                                   : ftxui::Color::White);
-                        if (state.focused) {
-                            state.element |=
-                                ftxui::bgcolor(ftxui::Color::Black);
-                        } else {
-                            *content_ref = *bind_ref;
+                        state.element |= ftxui::color(
+                            *is_error
+                                ? convertColor(webcface::ViewColor::red,
+                                               webcface::ViewColor::red, light)
+                                : convertColor(webcface::ViewColor::black,
+                                               webcface::ViewColor::black,
+                                               light));
+                        if (state.focused || state.hovered) {
+                            state.element |= ftxui::bgcolor(
+                                convertColor(webcface::ViewColor::white,
+                                             webcface::ViewColor::white, light,
+                                             state.hovered));
                         }
-                        if (state.hovered) {
-                            state.element |=
-                                ftxui::bgcolor(ftxui::Color::GrayDark);
+                        if (!state.focused) {
+                            *content_ref = *bind_ref;
                         }
                         return state.element;
                     };
@@ -181,10 +206,10 @@ class ViewUIContainer : public ftxui::ComponentBase {
   public:
     explicit ViewUIContainer(const webcface::View &view,
                              std::shared_ptr<std::string> help,
-                             std::shared_ptr<ftxui::Element> result)
+                             std::shared_ptr<ftxui::Element> result, bool light)
         : ftxui::ComponentBase(), view(view), ui_components(),
           prev_components(), focused_row(0), has_no_component(), help(help),
-          result(result) {
+          result(result), light(light) {
         this->Add(ftxui::Container::Vertical({}, &focused_row));
         view.prependListener([this] { this->updateLayout(); });
         this->updateLayout();
@@ -222,7 +247,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 break;
             case webcface::ViewComponentType::button:
             case webcface::ViewComponentType::text_input:
-            case webcface::ViewComponentType::decimal_input: {
+            case webcface::ViewComponentType::decimal_input:
+            case webcface::ViewComponentType::number_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
                     elements_col.push_back(ui_cp->Render());
@@ -242,6 +268,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                             ss << "Press Enter to send";
                             break;
                         case webcface::ViewComponentType::decimal_input:
+                        case webcface::ViewComponentType::number_input:
                             if (cp.min()) {
                                 ss << "min. " << *cp.min() << ", ";
                             }
@@ -269,20 +296,19 @@ class ViewUIContainer : public ftxui::ComponentBase {
 };
 inline ftxui::Component viewComponent(const webcface::View &view,
                                       std::shared_ptr<std::string> help,
-                                      std::shared_ptr<ftxui::Element> result) {
-    return std::make_shared<ViewUIContainer>(view, help, result);
+                                      std::shared_ptr<ftxui::Element> result,
+                                      bool light) {
+    return std::make_shared<ViewUIContainer>(view, help, result, light);
 }
-inline void addViewComponent(ftxui::ScreenInteractive &screen,
-                             ftxui::Component &container,
-                             const webcface::View &view,
-                             std::shared_ptr<std::string> help,
-                             std::shared_ptr<ftxui::Element> result) {
+inline void
+addViewComponent(ftxui::ScreenInteractive &screen, ftxui::Component &container,
+                 const webcface::View &view, std::shared_ptr<std::string> help,
+                 std::shared_ptr<ftxui::Element> result, bool light) {
     auto handle = std::make_shared<webcface::View::EventHandle>();
-    *handle =
-        view.prependListener([&screen, &container, view, handle, help, result] {
-            screen.Post([&container, view, help, result] {
-                container->Add(viewComponent(view, help, result));
-            });
-            view.removeListener(*handle);
+    *handle = view.prependListener([=, &screen, &container] {
+        screen.Post([=, &container] {
+            container->Add(viewComponent(view, help, result, light));
         });
+        view.removeListener(*handle);
+    });
 }

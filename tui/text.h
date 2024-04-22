@@ -2,8 +2,9 @@
 
 inline ftxui::Component textComponent(const webcface::Text &text,
                                       std::shared_ptr<std::string> help,
-                                      std::shared_ptr<ftxui::Element> result) {
-    return ftxui::Renderer([text, help](bool focused) {
+                                      std::shared_ptr<ftxui::Element> result,
+                                      bool /*light*/) {
+    return ftxui::Renderer([=](bool focused) {
         if (focused) {
             *help = defaultStatus();
         }
@@ -18,17 +19,15 @@ inline ftxui::Component textComponent(const webcface::Text &text,
                ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);
     });
 }
-inline void addTextComponent(ftxui::ScreenInteractive &screen,
-                             ftxui::Component &container,
-                             const webcface::Text &text,
-                             std::shared_ptr<std::string> help,
-                             std::shared_ptr<ftxui::Element> result) {
+inline void
+addTextComponent(ftxui::ScreenInteractive &screen, ftxui::Component &container,
+                 const webcface::Text &text, std::shared_ptr<std::string> help,
+                 std::shared_ptr<ftxui::Element> result, bool light) {
     auto handle = std::make_shared<webcface::Text::EventHandle>();
-    *handle =
-        text.prependListener([&screen, &container, text, handle, help, result] {
-            screen.Post([&container, text, help, result] {
-                container->Add(textComponent(text, help, result));
-            });
-            text.removeListener(*handle);
+    *handle = text.prependListener([=, &screen, &container] {
+        screen.Post([=, &container] {
+            container->Add(textComponent(text, help, result, light));
         });
+        text.removeListener(*handle);
+    });
 }

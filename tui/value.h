@@ -6,8 +6,9 @@ inline std::string &defaultStatus() {
 }
 inline ftxui::Component valueComponent(const webcface::Value &value,
                                        std::shared_ptr<std::string> help,
-                                       std::shared_ptr<ftxui::Element> result) {
-    return ftxui::Renderer([value, help](bool focused) {
+                                       std::shared_ptr<ftxui::Element> result,
+                                       bool /*light*/) {
+    return ftxui::Renderer([=](bool focused) {
         if (focused) {
             *help = defaultStatus();
         }
@@ -26,13 +27,13 @@ inline void addValueComponent(ftxui::ScreenInteractive &screen,
                               ftxui::Component &container,
                               const webcface::Value &value,
                               std::shared_ptr<std::string> help,
-                              std::shared_ptr<ftxui::Element> result) {
+                              std::shared_ptr<ftxui::Element> result,
+                              bool light) {
     auto handle = std::make_shared<webcface::Value::EventHandle>();
-    *handle = value.prependListener(
-        [&screen, &container, value, handle, help, result] {
-            screen.Post([&container, value, help, result] {
-                container->Add(valueComponent(value, help, result));
-            });
-            value.removeListener(*handle);
+    *handle = value.prependListener([=, &screen, &container] {
+        screen.Post([=, &container] {
+            container->Add(valueComponent(value, help, result, light));
         });
+        value.removeListener(*handle);
+    });
 }

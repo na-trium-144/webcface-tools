@@ -19,6 +19,10 @@ int main(int argc, char **argv) {
                    "Server address (default: 127.0.0.1)");
     app.add_option("-p,--port", wcli_port,
                    "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
+    bool light = false;
+    app.add_flag("-w,--white", light,
+                 "Light mode: display black text and white background "
+                 "(otherwise black and white are inverted)");
 
     std::vector<std::string> fields;
     app.add_option("fields", fields,
@@ -39,17 +43,17 @@ int main(int argc, char **argv) {
         auto value = wcli.member(member_name).value(field_name);
         value.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addValueComponent(screen, container, value, help, result);
+        addValueComponent(screen, container, value, help, result, light);
 
         auto text = wcli.member(member_name).text(field_name);
         text.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addTextComponent(screen, container, text, help, result);
+        addTextComponent(screen, container, text, help, result, light);
 
         auto view = wcli.member(member_name).view(field_name);
         view.appendListener(
             [&screen] { screen.PostEvent(ftxui::Event::Custom); });
-        addViewComponent(screen, container, view, help, result);
+        addViewComponent(screen, container, view, help, result, light);
     }
     wcli.waitConnection();
 
@@ -57,11 +61,11 @@ int main(int argc, char **argv) {
     ftxui::Element result_prev = nullptr;
     ftxui::Element status = nullptr;
     screen.Loop(ftxui::Renderer(container, [&] {
-        if(*help != help_prev){
+        if (*help != help_prev) {
             help_prev = *help;
             status = ftxui::text(*help) | ftxui::color(ftxui::Color::Black);
         }
-        if(*result != result_prev){
+        if (*result != result_prev) {
             status = result_prev = *result;
         }
         return ftxui::vbox({container->Render() | ftxui::vscroll_indicator |
