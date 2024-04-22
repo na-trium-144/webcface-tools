@@ -8,6 +8,8 @@ project(webcface-tools
 set(WEBCFACE_TOOLS_VERSION_SUFFIX "" CACHE STRING "version suffix")
 option(WEBCFACE_TOOLS_INSTALL_SERVICE "generate install target for systemd service file" off)
 set(WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH "/etc/webcface/webcface-launcher.toml" CACHE STRING "webcface-launcher config file path for systemd service")
+option(WEBCFACE_USE_OPENCV "use opencv to enable webcface-cv-capture" ON)
+option(WEBCFACE_USE_SDL2 "use sdl2 to enable webcface-joystick" ON)
 
 set(TOOLS_VERSION ${PROJECT_VERSION})
 if(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
@@ -21,7 +23,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 find_package(webcface 1.3 CONFIG)
-find_package(OpenCV QUIET)
+if(WEBCFACE_USE_OPENCV)
+    find_package(OpenCV REQUIRED)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(tiny-process-library
@@ -40,7 +44,34 @@ FetchContent_Declare(cli11
 )
 FetchContent_MakeAvailable(cli11)
 
-foreach(dir launcher send cv-capture)
+if(WEBCFACE_USE_SDL2)
+    include(FindPkgConfig)
+    if(MSVC)
+        message(STATUS "Fetching SDL2 ...")
+        FetchContent_Declare(sdl2
+            URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-devel-2.30.3-VC.zip
+        )
+        FetchContent_Populate(sdl2)
+        set(sdl2_DIR ${sdl2_SOURCE_DIR}/cmake)
+        find_package(sdl2 REQUIRED)
+        set(sdl2 SDL2::SDL2)
+        configure_file(${sdl2_SOURCE_DIR}/lib/x64/SDL2.dll SDL2.dll COPYONLY)
+        install(FILES SDL2.dll DESTINATION bin)
+    else()
+        pkg_search_module(sdl2 sdl2)
+        if(sdl2_FOUND)
+            add_library(sdl2 INTERFACE)
+            target_link_directories(sdl2 INTERFACE ${sdl2_LIBDIR})
+            target_link_libraries(sdl2 INTERFACE ${sdl2_LIBRARIES})
+            target_include_directories(sdl2 INTERFACE ${sdl2_INCLUDE_DIRS})
+            set(sdl2 sdl2)
+        else()
+            message(FATAL_ERROR "sdl2 not found (SDL2_FOUND = '${SDL2_FOUND}')")
+        endif()
+    endif()
+endif()
+
+foreach(dir launcher send cv-capture joystick)
     add_subdirectory(${dir})
 endforeach()
 
