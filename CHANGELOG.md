@@ -1,3 +1,8 @@
+## [1.4.3] - 2024-04-08
+### Changed
+* launcherのstart,stopボタンで呼び出される関数の非表示設定を解除、名前を`command名/start`などに変更 (#39)
+* CMakeListsでwebcfaceのバージョンを1.3以上と指定
+
 ## [1.4.2] - 2024-02-24
 ### Fixed
 * (unixのみ) launcherを強制終了したときlauncher内で実行中のコマンドにもシグナルを送るようにした (#33)
