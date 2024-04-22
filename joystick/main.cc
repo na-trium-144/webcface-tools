@@ -101,6 +101,16 @@ int main(int argc, char **argv) {
             wcli_v.child("power") = SDL_JoystickCurrentPowerLevel(j);
         }
         wcli.sync();
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT:
+                SDL_Quit();
+                return 0;
+            default:
+                break;
+            }
+        }
         SDL_Delay(1);
     }
 }
