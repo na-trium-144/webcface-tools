@@ -19,6 +19,8 @@ jobs:
       run: brew update --preinstall
     - name: Install webcface from Homebrew
       run: env HOMEBREW_NO_AUTO_UPDATE=1 brew install na-trium-144/webcface/webcface || true
+    - name: Install sdl2
+      run: env HOMEBREW_NO_AUTO_UPDATE=1 brew install sdl2 || true
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}

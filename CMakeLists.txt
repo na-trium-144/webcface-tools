@@ -49,7 +49,7 @@ if(WEBCFACE_USE_SDL2)
     if(MSVC)
         message(STATUS "Fetching SDL2 ...")
         FetchContent_Declare(sdl2
-            URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-devel-2.30.3-VC.zip
+            URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.2/SDL2-devel-2.30.2-VC.zip
         )
         FetchContent_Populate(sdl2)
         set(sdl2_DIR ${sdl2_SOURCE_DIR}/cmake)
