@@ -1,4 +1,4 @@
-#include <webcface/webcface.h>
+#include <webcface/client.h>
 #include <CLI/CLI.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/component/component.hpp>
@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "../common/common.h"
+#include "status.h"
 #include "value.h"
 #include "text.h"
 #include "view.h"

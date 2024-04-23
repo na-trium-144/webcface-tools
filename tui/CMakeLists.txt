@@ -1,4 +1,4 @@
-add_executable(webcface-tui main.cc)
+add_executable(webcface-tui main.cc value.cc text.cc view.cc)
 target_link_libraries(webcface-tui
     webcface::webcface
     CLI11

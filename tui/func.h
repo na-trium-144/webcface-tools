@@ -1,4 +1,6 @@
 #pragma once
+#include <webcface/member.h>
+#include <webcface/func.h>
 
 template <typename... Args>
 inline void runAsync(const webcface::Func &func,
