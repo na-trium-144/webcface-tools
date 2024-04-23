@@ -5,6 +5,7 @@
 #include <ftxui/component/screen_interactive.hpp>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include "../common/common.h"
 #include "status.h"
 #include "value.h"
@@ -36,24 +37,23 @@ int main(int argc, char **argv) {
     auto container = ftxui::Container::Vertical({});
     auto help = std::make_shared<std::string>();
     auto result = std::make_shared<ftxui::Element>();
-
+    std::unordered_set<std::string> members;
     for (auto &fp : fields) {
         auto fp_colon = fp.find(':');
         std::string member_name = fp.substr(0, fp_colon);
         std::string field_name = fp.substr(fp_colon + 1);
+        if(!members.count(member_name)){
+            wcli.member(member_name).onSync().appendListener(
+                [&screen] { screen.PostEvent(ftxui::Event::Custom); });
+            members.emplace(member_name);
+        }
         auto value = wcli.member(member_name).value(field_name);
-        value.appendListener(
-            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
         addValueComponent(screen, container, value, help, result, light);
 
         auto text = wcli.member(member_name).text(field_name);
-        text.appendListener(
-            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
         addTextComponent(screen, container, text, help, result, light);
 
         auto view = wcli.member(member_name).view(field_name);
-        view.appendListener(
-            [&screen] { screen.PostEvent(ftxui::Event::Custom); });
         addViewComponent(screen, container, view, help, result, light);
     }
     wcli.waitConnection();

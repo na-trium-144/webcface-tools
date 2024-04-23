@@ -26,6 +26,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
     ftxui::Component buttonComponent(const webcface::ViewComponent &cp) const;
     ftxui::Component inputComponent(const webcface::ViewComponent &cp) const;
     ftxui::Component dropdownComponent(const webcface::ViewComponent &cp) const;
+    ftxui::Component toggleComponent(const webcface::ViewComponent &cp) const;
 
   public:
     explicit ViewUIContainer(const webcface::View &view,

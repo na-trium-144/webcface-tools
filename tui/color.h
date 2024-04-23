@@ -3,12 +3,8 @@
 inline ftxui::Color rgbColor(std::uint32_t col) {
     return ftxui::Color(col >> 16 & 0xff, col >> 8 & 0xff, col & 0xff);
 }
-inline ftxui::Color convertColor(webcface::ViewColor color,
-                                 webcface::ViewColor default_color, bool light,
+inline ftxui::Color convertColor(webcface::ViewColor color, bool light,
                                  bool active = false) {
-    if (color == webcface::ViewColor::inherit) {
-        color = default_color;
-    }
     switch (color) {
     case webcface::ViewColor::black:
         if (light) {
@@ -35,4 +31,11 @@ inline ftxui::Color convertColor(webcface::ViewColor color,
     default:
         return ftxui::Color::Default;
     }
+}
+inline ftxui::Color convertColor(webcface::ViewColor color,
+                                 webcface::ViewColor default_color, bool light,
+                                 bool active = false) {
+    return convertColor(color == webcface::ViewColor::inherit ? default_color
+                                                              : color,
+                        light, active);
 }

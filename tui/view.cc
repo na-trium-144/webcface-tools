@@ -96,6 +96,15 @@ void ViewUIContainer::updateLayout() {
             root->ChildAt(row)->Add(ui_cp);
             break;
         }
+        case webcface::ViewComponentType::toggle_input: {
+            ftxui::Component ui_cp = this->ui_components[cp.id()];
+            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                this->prev_components[cp.id()] = cp;
+                this->ui_components[cp.id()] = ui_cp = toggleComponent(cp);
+            }
+            root->ChildAt(row)->Add(ui_cp);
+            break;
+        }
         }
     }
     if (root->ChildAt(row)->ChildCount() == 0) {
@@ -207,14 +216,11 @@ ViewUIContainer::inputComponent(const webcface::ViewComponent &cp) const {
             ftxui::text("]"),
         });
         state.element |= ftxui::color(
-            *is_error ? convertColor(webcface::ViewColor::red,
-                                     webcface::ViewColor::red, light)
-                      : convertColor(webcface::ViewColor::black,
-                                     webcface::ViewColor::black, light));
+            *is_error ? convertColor(webcface::ViewColor::red, light)
+                      : convertColor(webcface::ViewColor::black, light));
         if (state.focused || state.hovered) {
             state.element |= ftxui::bgcolor(
-                convertColor(webcface::ViewColor::white,
-                             webcface::ViewColor::white, light, state.hovered));
+                convertColor(webcface::ViewColor::white, light, state.hovered));
         }
         if (!state.focused) {
             *content_ref = *bind_ref;
@@ -284,9 +290,8 @@ ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
                 checkbox,
                 radiobox | ftxui::vscroll_indicator | ftxui::yframe |
                     ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 5) |
-                    ftxui::bgcolor(convertColor(webcface::ViewColor::white,
-                                                webcface::ViewColor::white,
-                                                light, true)),
+                    ftxui::bgcolor(
+                        convertColor(webcface::ViewColor::white, light, true)),
                 ftxui::filler(),
             });
         }
@@ -295,6 +300,42 @@ ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
     return ftxui::Dropdown(option);
 }
 
+ftxui::Component
+ViewUIContainer::toggleComponent(const webcface::ViewComponent &cp) const {
+    auto option = ftxui::ButtonOption::Animated(
+        convertColor(webcface::ViewColor::white, light),
+        convertColor(webcface::ViewColor::black, light),
+        convertColor(webcface::ViewColor::white, light, true),
+        convertColor(webcface::ViewColor::black, light));
+    auto bind_ref = std::make_shared<std::string>();
+    if (cp.bind()) {
+        *bind_ref = cp.bind()->get();
+        cp.bind()->appendListener([bind_ref](const auto &b) { *bind_ref = b; });
+    }
+    option.transform = [bind_ref](const ftxui::EntryState &s) {
+        if (s.focused) {
+            return ftxui::text("[" + *bind_ref + "]") | ftxui::bold;
+        } else {
+            return ftxui::text("[" + *bind_ref + "]");
+        }
+    };
+    return ftxui::Button(
+        cp.text(),
+        [func = cp.onChange(), option = cp.option(), bind_ref,
+         result = this->result] {
+            int current = -1;
+            for (std::size_t i = 0; i < option.size(); i++) {
+                if (*bind_ref == option[i]) {
+                    current = i;
+                    break;
+                }
+            }
+            if (func) {
+                runAsync(*func, result, option[(current + 1) % option.size()]);
+            }
+        },
+        option);
+}
 
 ftxui::Element
 ViewUIContainer::RenderCol(const std::vector<ftxui::Element> &elements_col,
@@ -326,7 +367,8 @@ ftxui::Element ViewUIContainer::Render() {
         case webcface::ViewComponentType::text_input:
         case webcface::ViewComponentType::decimal_input:
         case webcface::ViewComponentType::number_input:
-        case webcface::ViewComponentType::select_input: {
+        case webcface::ViewComponentType::select_input:
+        case webcface::ViewComponentType::toggle_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
             if (ui_cp) {
                 elements_col.push_back(ui_cp->Render());
@@ -356,7 +398,10 @@ ftxui::Element ViewUIContainer::Render() {
                         ss << "Press Enter to send";
                         break;
                     case webcface::ViewComponentType::select_input:
-                        ss << "Press Enter of Space to select";
+                        ss << "Press Enter or Space to select";
+                        break;
+                    case webcface::ViewComponentType::toggle_input:
+                        ss << "Press Enter to toggle value";
                         break;
                     default:
                         break;
