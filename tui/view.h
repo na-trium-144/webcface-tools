@@ -1,6 +1,7 @@
 #pragma once
 #include "color.h"
 #include "func.h"
+#include <cctype>
 
 class ViewUIContainer : public ftxui::ComponentBase {
     webcface::View view;
@@ -110,7 +111,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                         case webcface::ViewComponentType::decimal_input: {
                             double val = 0;
                             for (char c : *content_ref) {
-                                if ((c < '0' || c > '9') && c != '.') {
+                                if (!std::isdigit(c) && c != '.') {
                                     return;
                                 }
                             }
@@ -128,7 +129,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
                         case webcface::ViewComponentType::number_input: {
                             int val = 0;
                             for (char c : *content_ref) {
-                                if (c < '0' || c > '9') {
+                                if (!std::isdigit(c)) {
                                     return;
                                 }
                             }
@@ -194,6 +195,86 @@ class ViewUIContainer : public ftxui::ComponentBase {
                 root->ChildAt(row)->Add(ui_cp);
                 break;
             }
+            case webcface::ViewComponentType::select_input: {
+                ftxui::Component ui_cp = this->ui_components[cp.id()];
+                if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                    this->prev_components[cp.id()] = cp;
+                    auto bind_ref = std::make_shared<std::string>();
+                    if (cp.bind()) {
+                        *bind_ref = cp.bind()->get();
+                        cp.bind()->appendListener(
+                            [bind_ref](const auto &b) { *bind_ref = b; });
+                    }
+                    ftxui::DropdownOption option{};
+                    auto options = std::make_shared<std::vector<std::string>>();
+                    for (const auto &o : cp.option()) {
+                        options->push_back(o.asStringRef());
+                    }
+                    option.radiobox.entries = options.get();
+                    auto selected = std::make_shared<int>();
+                    option.radiobox.selected = selected.get();
+                    if (cp.onChange()) {
+                        option.radiobox.on_change =
+                            [cp, func = *cp.onChange(), options_v = cp.option(),
+                             bind_ref, selected, result = this->result] {
+                                auto selected_v = options_v.at(*selected);
+                                if (*bind_ref != selected_v) {
+                                    runAsync(func, result, selected_v);
+                                }
+                            };
+                    }
+                    option.checkbox.transform =
+                        [bind_ref, options_v = cp.option(), options,
+                         selected](const ftxui::EntryState &state) {
+                            auto t = ftxui::text(state.label);
+                            if (!state.focused) {
+                                for (std::size_t i = 0; i < options_v.size();
+                                     i++) {
+                                    if (options_v[i] == *bind_ref) {
+                                        *selected = i;
+                                    }
+                                }
+                            }
+                            if (state.focused) {
+                                t |= ftxui::bold;
+                            }
+                            return ftxui::hbox(
+                                {ftxui::text(state.state ? "[↓ " : "[→ "), t,
+                                 ftxui::text("]")});
+                        };
+                    option.radiobox.transform = [](const ftxui::EntryState &s) {
+                        auto prefix = ftxui::text(s.state ? "* " : "  ");
+                        auto t = ftxui::text(s.label);
+                        if (s.focused) {
+                            t |= ftxui::bold;
+                        }
+                        return ftxui::hbox({prefix, t});
+                    };
+                    option.transform = [options, light = this->light](
+                                           bool open, ftxui::Element checkbox,
+                                           ftxui::Element radiobox) {
+                        if (open) {
+                            return ftxui::vbox({
+                                checkbox,
+                                radiobox | ftxui::vscroll_indicator |
+                                    ftxui::yframe |
+                                    ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN,
+                                                5) |
+                                    ftxui::bgcolor(
+                                        convertColor(webcface::ViewColor::white,
+                                                     webcface::ViewColor::white,
+                                                     light, true)),
+                                ftxui::filler(),
+                            });
+                        }
+                        return ftxui::vbox({checkbox, ftxui::filler()});
+                    };
+                    auto ui_dropdown = ftxui::Dropdown(option);
+                    this->ui_components[cp.id()] = ui_cp = ui_dropdown;
+                }
+                root->ChildAt(row)->Add(ui_cp);
+                break;
+            }
             }
         }
         if (root->ChildAt(row)->ChildCount() == 0) {
@@ -248,7 +329,8 @@ class ViewUIContainer : public ftxui::ComponentBase {
             case webcface::ViewComponentType::button:
             case webcface::ViewComponentType::text_input:
             case webcface::ViewComponentType::decimal_input:
-            case webcface::ViewComponentType::number_input: {
+            case webcface::ViewComponentType::number_input:
+            case webcface::ViewComponentType::select_input: {
                 ftxui::Component ui_cp = this->ui_components[cp.id()];
                 if (ui_cp) {
                     elements_col.push_back(ui_cp->Render());
@@ -276,6 +358,11 @@ class ViewUIContainer : public ftxui::ComponentBase {
                                 ss << "max. " << *cp.max() << ", ";
                             }
                             ss << "Press Enter to send";
+                            break;
+                        case webcface::ViewComponentType::select_input:
+                            ss << "Press Enter of Space to select";
+                            break;
+                        default:
                             break;
                         }
                         *help = ss.str();
