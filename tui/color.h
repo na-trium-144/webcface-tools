@@ -28,6 +28,18 @@ inline ftxui::Color convertColor(webcface::ViewColor color, bool light,
         return active ? rgbColor(0xffff66) : rgbColor(0xffff00);
     case webcface::ViewColor::green:
         return active ? rgbColor(0x33cc33) : rgbColor(0x008000);
+    case webcface::ViewColor::teal:
+        return active ? rgbColor(0x33cccc) : rgbColor(0x008080);
+    case webcface::ViewColor::cyan:
+        return active ? rgbColor(0x66cccc) : rgbColor(0x00ffff);
+    case webcface::ViewColor::blue:
+        return active ? rgbColor(0x3333ff) : rgbColor(0x0000ff);
+    case webcface::ViewColor::indigo:
+        return active ? rgbColor(0x6633cc) : rgbColor(0x4b0082);
+    case webcface::ViewColor::purple:
+        return active ? rgbColor(0xcc33cc) : rgbColor(0x800080);
+    case webcface::ViewColor::pink:
+        return active ? rgbColor(0xffcccc) : rgbColor(0xff69b4);
     default:
         return ftxui::Color::Default;
     }
