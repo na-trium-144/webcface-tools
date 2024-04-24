@@ -1,6 +1,7 @@
 #include "value.h"
 #include "status.h"
 #include <webcface/member.h>
+#include <eventpp/utilities/counterremover.h>
 
 ftxui::Component valueComponent(const webcface::Value &value,
                                 std::shared_ptr<std::string> help,
@@ -26,11 +27,12 @@ void addValueComponent(ftxui::ScreenInteractive &screen,
                        const webcface::Value &value,
                        std::shared_ptr<std::string> help,
                        std::shared_ptr<ftxui::Element> result, bool light) {
-    auto handle = std::make_shared<webcface::Value::EventHandle>();
-    *handle = value.prependListener([=, &screen, &container] {
-        screen.Post([=, &container] {
-            container->Add(valueComponent(value, help, result, light));
-        });
-        value.removeListener(*handle);
-    });
+    eventpp::counterRemover(value.callbackList())
+        .prepend(
+            [=, &screen, &container](const webcface::Field &) {
+                screen.Post([=, &container] {
+                    container->Add(valueComponent(value, help, result, light));
+                });
+            },
+            1);
 }

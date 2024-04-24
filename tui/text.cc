@@ -1,6 +1,7 @@
 #include "text.h"
 #include "status.h"
 #include <webcface/member.h>
+#include <eventpp/utilities/counterremover.h>
 
 ftxui::Component textComponent(const webcface::Text &text,
                                std::shared_ptr<std::string> help,
@@ -25,11 +26,12 @@ void addTextComponent(ftxui::ScreenInteractive &screen,
                       ftxui::Component &container, const webcface::Text &text,
                       std::shared_ptr<std::string> help,
                       std::shared_ptr<ftxui::Element> result, bool light) {
-    auto handle = std::make_shared<webcface::Text::EventHandle>();
-    *handle = text.prependListener([=, &screen, &container] {
-        screen.Post([=, &container] {
-            container->Add(textComponent(text, help, result, light));
-        });
-        text.removeListener(*handle);
-    });
+    eventpp::counterRemover(text.callbackList())
+        .prepend(
+            [=, &screen, &container](const webcface::Field &) {
+                screen.Post([=, &container] {
+                    container->Add(textComponent(text, help, result, light));
+                });
+            },
+            1);
 }

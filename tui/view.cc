@@ -5,6 +5,7 @@
 #include <cctype>
 #include <webcface/member.h>
 #include <sstream>
+#include <eventpp/utilities/counterremover.h>
 
 ViewUIContainer::ViewUIContainer(const webcface::View &view,
                                  std::shared_ptr<std::string> help,
@@ -27,13 +28,14 @@ void addViewComponent(ftxui::ScreenInteractive &screen,
                       ftxui::Component &container, const webcface::View &view,
                       std::shared_ptr<std::string> help,
                       std::shared_ptr<ftxui::Element> result, bool light) {
-    auto handle = std::make_shared<webcface::View::EventHandle>();
-    *handle = view.prependListener([=, &screen, &container] {
-        screen.Post([=, &container] {
-            container->Add(viewComponent(view, help, result, light));
-        });
-        view.removeListener(*handle);
-    });
+    eventpp::counterRemover(view.callbackList())
+        .prepend(
+            [=, &screen, &container](const webcface::Field &) {
+                screen.Post([=, &container] {
+                    container->Add(viewComponent(view, help, result, light));
+                });
+            },
+            1);
 }
 
 void ViewUIContainer::updateLayout() {
@@ -101,6 +103,15 @@ void ViewUIContainer::updateLayout() {
             if (!ui_cp && cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = toggleComponent(cp);
+            }
+            root->ChildAt(row)->Add(ui_cp);
+            break;
+        }
+        case webcface::ViewComponentType::slider_input: {
+            ftxui::Component ui_cp = this->ui_components[cp.id()];
+            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                this->prev_components[cp.id()] = cp;
+                this->ui_components[cp.id()] = ui_cp = sliderComponent(cp);
             }
             root->ChildAt(row)->Add(ui_cp);
             break;
@@ -260,7 +271,7 @@ ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
     }
     option.checkbox.transform = [bind_ref, options_v = cp.option(), options,
                                  selected](const ftxui::EntryState &state) {
-        auto t = ftxui::text(state.label);
+        auto t = ftxui::text(*bind_ref);
         if (!state.focused) {
             for (std::size_t i = 0; i < options_v.size(); i++) {
                 if (options_v[i] == *bind_ref) {
@@ -336,6 +347,52 @@ ViewUIContainer::toggleComponent(const webcface::ViewComponent &cp) const {
         },
         option);
 }
+ftxui::Component
+ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
+    auto bind_ref = std::make_shared<float>();
+    if (cp.bind()) {
+        *bind_ref = cp.bind()->get();
+        cp.bind()->appendListener(
+            [bind_ref](const auto &b) { *bind_ref = b.get(); });
+    }
+    auto prev_val = std::make_shared<float>(*bind_ref);
+    auto current_val = std::make_shared<float>(*bind_ref);
+    // ftxui::sliderにonChangeないのなんでだろう?
+    auto slider = ftxui::Slider(ftxui::SliderOption<float>{
+        .value = current_val.get(),
+        .min = cp.min().value_or(0),
+        .max = cp.max().value_or(0),
+        .increment = cp.step().value_or(1),
+        .direction = ftxui::Direction::Right,
+    });
+    return ftxui::Renderer(
+        slider, [slider, bind_ref, prev_val, current_val, func = cp.onChange(),
+                 min = cp.min().value_or(0), max = cp.max().value_or(0),
+                 light = this->light, result = this->result] {
+            auto color = convertColor(webcface::ViewColor::black, light,
+                                      slider->Focused());
+            auto element =
+                ftxui::hbox({
+                    ftxui::text("["),
+                    ftxui::gaugeRight((*current_val - min) / (max - min)) |
+                        ftxui::color(color),
+                    ftxui::text("]"),
+                }) |
+                ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 20);
+            if (slider->Focused()) {
+                if (*prev_val != *current_val) {
+                    *prev_val = *current_val;
+                    if (*bind_ref != *current_val && func) {
+                        runAsync(*func, result, *current_val);
+                    }
+                }
+                element |= ftxui::focus;
+            } else {
+                *current_val = *prev_val = *bind_ref;
+            }
+            return element;
+        });
+}
 
 ftxui::Element
 ViewUIContainer::RenderCol(const std::vector<ftxui::Element> &elements_col,
@@ -368,7 +425,8 @@ ftxui::Element ViewUIContainer::Render() {
         case webcface::ViewComponentType::decimal_input:
         case webcface::ViewComponentType::number_input:
         case webcface::ViewComponentType::select_input:
-        case webcface::ViewComponentType::toggle_input: {
+        case webcface::ViewComponentType::toggle_input:
+        case webcface::ViewComponentType::slider_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
             if (ui_cp) {
                 elements_col.push_back(ui_cp->Render());
@@ -395,7 +453,25 @@ ftxui::Element ViewUIContainer::Render() {
                         if (cp.max()) {
                             ss << "max. " << *cp.max() << ", ";
                         }
+                        if (cp.step()) {
+                            ss << "step. " << *cp.step() << ", ";
+                        }
                         ss << "Press Enter to send";
+                        break;
+                    case webcface::ViewComponentType::slider_input:
+                        if (cp.bind()) {
+                            ss << "now " << cp.bind()->get() << ", ";
+                        }
+                        if (cp.min()) {
+                            ss << "min. " << *cp.min() << ", ";
+                        }
+                        if (cp.max()) {
+                            ss << "max. " << *cp.max() << ", ";
+                        }
+                        if (cp.step()) {
+                            ss << "step. " << *cp.step() << ", ";
+                        }
+                        ss << "←/→ or H/L to change value, Tab to move cursor";
                         break;
                     case webcface::ViewComponentType::select_input:
                         ss << "Press Enter or Space to select";
