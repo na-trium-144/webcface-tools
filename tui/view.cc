@@ -50,13 +50,15 @@ void ViewUIContainer::updateLayout() {
         has_no_component.push_back(false);
     }
     std::size_t row = 0;
+    bool row_has_elem = false;
     for (const auto &cp : this->view.get()) {
         switch (cp.type()) {
         case webcface::ViewComponentType::text:
+            row_has_elem = true;
             break;
         case webcface::ViewComponentType::new_line:
             // 空の行もfocusを取れるようにする(仮)
-            if (root->ChildAt(row)->ChildCount() == 0) {
+            if (root->ChildAt(row)->ChildCount() == 0 && row_has_elem) {
                 has_no_component[row] = true;
                 root->ChildAt(row)->Add(ftxui::Renderer(
                     [](bool /*focused*/) { return ftxui::emptyElement(); }));
@@ -68,6 +70,7 @@ void ViewUIContainer::updateLayout() {
                 root->Add(ftxui::Container::Horizontal({}));
                 has_no_component.push_back(false);
             }
+            row_has_elem = false;
             break;
         case webcface::ViewComponentType::button: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
@@ -116,9 +119,18 @@ void ViewUIContainer::updateLayout() {
             root->ChildAt(row)->Add(ui_cp);
             break;
         }
+        case webcface::ViewComponentType::check_input: {
+            ftxui::Component ui_cp = this->ui_components[cp.id()];
+            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+                this->prev_components[cp.id()] = cp;
+                this->ui_components[cp.id()] = ui_cp = checkComponent(cp);
+            }
+            root->ChildAt(row)->Add(ui_cp);
+            break;
+        }
         }
     }
-    if (root->ChildAt(row)->ChildCount() == 0) {
+    if (root->ChildAt(row)->ChildCount() == 0 && row_has_elem) {
         has_no_component[row] = true;
         root->ChildAt(row)->Add(ftxui::Renderer(
             [](bool /*focused*/) { return ftxui::emptyElement(); }));
@@ -369,8 +381,10 @@ ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
         slider, [slider, bind_ref, prev_val, current_val, func = cp.onChange(),
                  min = cp.min().value_or(0), max = cp.max().value_or(0),
                  light = this->light, result = this->result] {
-            auto color = convertColor(webcface::ViewColor::black, light,
-                                      slider->Focused());
+            auto color =
+                convertColor(slider->Focused() ? webcface::ViewColor::green
+                                               : webcface::ViewColor::black,
+                             light, slider->Focused());
             auto element =
                 ftxui::hbox({
                     ftxui::text("["),
@@ -393,6 +407,40 @@ ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
             return element;
         });
 }
+ftxui::Component
+ViewUIContainer::checkComponent(const webcface::ViewComponent &cp) const {
+    auto bind_ref = std::make_shared<bool>();
+    if (cp.bind()) {
+        *bind_ref = cp.bind()->get();
+        cp.bind()->appendListener(
+            [bind_ref](const auto &b) { *bind_ref = b.get(); });
+    }
+    auto checked = std::make_shared<bool>(*bind_ref);
+    ftxui::CheckboxOption option{};
+    option.label = cp.text();
+    option.checked = checked.get();
+    if (cp.onChange()) {
+        option.on_change = [cp, func = *cp.onChange(), bind_ref, checked,
+                            result = this->result] {
+            if (*bind_ref != *checked) {
+                runAsync(func, result, *checked);
+            }
+        };
+    }
+    option.transform = [bind_ref, checked](const ftxui::EntryState &state) {
+        auto prefix = ftxui::text(state.state ? "[x] " : "[ ] ");
+        auto t = ftxui::text(state.label);
+        if (state.focused) {
+            prefix |= ftxui::bold;
+            t |= ftxui::bold;
+        } else {
+            *checked = *bind_ref;
+        }
+        return ftxui::hbox({prefix, t});
+    };
+    return ftxui::Checkbox(option);
+}
+
 
 ftxui::Element
 ViewUIContainer::RenderCol(const std::vector<ftxui::Element> &elements_col,
@@ -426,7 +474,8 @@ ftxui::Element ViewUIContainer::Render() {
         case webcface::ViewComponentType::number_input:
         case webcface::ViewComponentType::select_input:
         case webcface::ViewComponentType::toggle_input:
-        case webcface::ViewComponentType::slider_input: {
+        case webcface::ViewComponentType::slider_input:
+        case webcface::ViewComponentType::check_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
             if (ui_cp) {
                 elements_col.push_back(ui_cp->Render());
@@ -477,6 +526,7 @@ ftxui::Element ViewUIContainer::Render() {
                         ss << "Press Enter or Space to select";
                         break;
                     case webcface::ViewComponentType::toggle_input:
+                    case webcface::ViewComponentType::check_input:
                         ss << "Press Enter to toggle value";
                         break;
                     default:
