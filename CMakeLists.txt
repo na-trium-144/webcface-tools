@@ -22,7 +22,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-utf-8)
 endif()
 
-find_package(webcface 1.3 CONFIG)
+find_package(webcface 1.11 CONFIG)
 if(WEBCFACE_USE_OPENCV)
     find_package(OpenCV REQUIRED)
 endif()
@@ -100,6 +100,10 @@ install(FILES
 install(FILES
     ${tomlplusplus_SOURCE_DIR}/LICENSE
     DESTINATION share/webcface/3rd_party/tomlplusplus
+)
+install(FILES
+    ${ftxui_SOURCE_DIR}/LICENSE
+    DESTINATION share/webcface/3rd_party/ftxui
 )
 
 set(CPACK_VERBATIM_VARIABLES yes)
