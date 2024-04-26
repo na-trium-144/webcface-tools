@@ -86,7 +86,7 @@ jobs:
             cd /workspace
             curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep ${{matrix.arch_name}} | grep ${{matrix.distro}} | sed 's/"//g' | awk '{print $2}')
             apt-get update -q -y
-            apt-get install -y ./*.deb
+            apt-get install -y ./*.deb libsdl2-dev
             rm ./*.deb
             cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=ubuntu${distro}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/') -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
             cmake --build build --config ${{env.BUILD_TYPE}}
