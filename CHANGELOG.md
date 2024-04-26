@@ -1,3 +1,9 @@
+## [1.4.4] - 2024-04-26
+### Added
+* Ubuntu24.04のビルドを追加
+### Changed
+* CMakeListsをターゲットごとに分割 (#42)
+
 ## [1.4.3] - 2024-04-08
 ### Changed
 * launcherのstart,stopボタンで呼び出される関数の非表示設定を解除、名前を`command名/start`などに変更 (#39)
