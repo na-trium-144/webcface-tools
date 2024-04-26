@@ -8,6 +8,7 @@ project(webcface-tools
 set(WEBCFACE_TOOLS_VERSION_SUFFIX "" CACHE STRING "version suffix")
 option(WEBCFACE_TOOLS_INSTALL_SERVICE "generate install target for systemd service file" off)
 set(WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH "/etc/webcface/webcface-launcher.toml" CACHE STRING "webcface-launcher config file path for systemd service")
+option(WEBCFACE_USE_OPENCV "use opencv to enable image processing feature" ON)
 
 set(TOOLS_VERSION ${PROJECT_VERSION})
 if(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
@@ -20,8 +21,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-utf-8)
 endif()
 
-find_package(webcface 1.3 CONFIG)
-find_package(OpenCV QUIET)
+find_package(webcface 1.11 CONFIG)
+if(WEBCFACE_USE_OPENCV)
+    find_package(OpenCV REQUIRED)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(tiny-process-library
@@ -44,11 +47,8 @@ FetchContent_Declare(ftxui
   GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
   GIT_TAG main
 )
-FetchContent_GetProperties(ftxui)
-if(NOT ftxui_POPULATED)
-  FetchContent_Populate(ftxui)
-  add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+set(FTXUI_ENABLE_INSTALL OFF CACHE INTERNAL "" FORCE)
+FetchContent_MakeAvailable(ftxui)
 
 foreach(dir launcher send cv-capture tui)
     add_subdirectory(${dir})
@@ -79,6 +79,10 @@ install(FILES
 install(FILES
     ${tomlplusplus_SOURCE_DIR}/LICENSE
     DESTINATION share/webcface/3rd_party/tomlplusplus
+)
+install(FILES
+    ${ftxui_SOURCE_DIR}/LICENSE
+    DESTINATION share/webcface/3rd_party/ftxui
 )
 
 set(CPACK_VERBATIM_VARIABLES yes)
