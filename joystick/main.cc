@@ -24,13 +24,7 @@ int main(int argc, char **argv) {
 
     webcface::Client wcli(wcli_name, wcli_host, wcli_port);
     wcli.waitConnection();
-
-    std::vector<spdlog::sink_ptr> sinks = {
-        std::make_shared<spdlog::sinks::stderr_color_sink_mt>(),
-        wcli.loggerSink(),
-    };
-    auto logger = std::make_shared<spdlog::logger>("webcface-joystick",
-                                                   sinks.begin(), sinks.end());
+    auto logger = wcli.logger();
 
     if (SDL_Init(SDL_INIT_JOYSTICK) < 0) {
         logger->critical("Error in SDL_Init: {}", SDL_GetError());
@@ -75,30 +69,27 @@ int main(int argc, char **argv) {
     while (true) {
         SDL_JoystickUpdate();
         for (auto [n, j] : joystick) {
-            auto wcli_v = wcli.value(std::to_string(n));
+            auto wcli_v = wcli.child(n);
             int buttons_num = SDL_JoystickNumButtons(j);
-            std::vector<bool> buttons;
+            auto buttons = wcli_v.value("buttons").resize(0);
             for (int i = 0; i < buttons_num; i++) {
                 buttons.push_back(SDL_JoystickGetButton(j, i));
             }
-            wcli_v.child("buttons") = buttons;
             int axes_num = SDL_JoystickNumAxes(j);
-            std::vector<std::int16_t> axes;
+            auto axes = wcli_v.value("axes").resize(0);
             for (int i = 0; i < axes_num; i++) {
                 axes.push_back(SDL_JoystickGetAxis(j, i));
             }
-            wcli_v.child("axes") = axes;
             int hats_num = SDL_JoystickNumHats(j);
             for (int i = 0; i < hats_num; i++) {
                 int hat = SDL_JoystickGetHat(j, i);
-                wcli_v.child("hats").child(std::to_string(i)) = {
-                    {"up", !!(hat & SDL_HAT_UP)},
-                    {"down", !!(hat & SDL_HAT_DOWN)},
-                    {"left", !!(hat & SDL_HAT_LEFT)},
-                    {"right", !!(hat & SDL_HAT_RIGHT)},
-                };
+                auto hat_v = wcli_v.value("hats")[i];
+                hat_v["up"] = !!(hat & SDL_HAT_UP);
+                hat_v["down"] = !!(hat & SDL_HAT_DOWN);
+                hat_v["left"] = !!(hat & SDL_HAT_LEFT);
+                hat_v["right"] = !!(hat & SDL_HAT_RIGHT);
             }
-            wcli_v.child("power") = SDL_JoystickCurrentPowerLevel(j);
+            wcli_v.value("power") = SDL_JoystickCurrentPowerLevel(j);
         }
         wcli.sync();
         SDL_Event event;
