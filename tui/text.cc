@@ -28,7 +28,7 @@ void addTextComponent(ftxui::ScreenInteractive &screen,
                       std::shared_ptr<ftxui::Element> result, bool light) {
     eventpp::counterRemover(text.callbackList())
         .prepend(
-            [=, &screen, &container](const webcface::Field &) {
+            [=, &screen, &container](const webcface::Text &) {
                 screen.Post([=, &container] {
                     container->Add(textComponent(text, help, result, light));
                 });

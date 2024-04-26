@@ -30,7 +30,7 @@ void addViewComponent(ftxui::ScreenInteractive &screen,
                       std::shared_ptr<ftxui::Element> result, bool light) {
     eventpp::counterRemover(view.callbackList())
         .prepend(
-            [=, &screen, &container](const webcface::Field &) {
+            [=, &screen, &container](const webcface::View &) {
                 screen.Post([=, &container] {
                     container->Add(viewComponent(view, help, result, light));
                 });

@@ -29,7 +29,7 @@ void addValueComponent(ftxui::ScreenInteractive &screen,
                        std::shared_ptr<ftxui::Element> result, bool light) {
     eventpp::counterRemover(value.callbackList())
         .prepend(
-            [=, &screen, &container](const webcface::Field &) {
+            [=, &screen, &container](const webcface::Value &) {
                 screen.Post([=, &container] {
                     container->Add(valueComponent(value, help, result, light));
                 });
