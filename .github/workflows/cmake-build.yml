@@ -13,49 +13,6 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build-amd64:
-    strategy:
-      matrix:
-        distro: [ubuntu22.04, ubuntu20.04]
-        include:
-          - distro: ubuntu22.04
-            distro2: ubuntu-22.04
-            cc: gcc-11
-            cxx: g++-11
-          - distro: ubuntu20.04
-            distro2: ubuntu-20.04
-            cc: gcc-10
-            cxx: g++-10
-    runs-on: ${{matrix.distro2}}
-    steps:
-    - name: install latest webcface
-      run: |
-        curl -LO $(curl -s https://api.github.com/repos/na-trium-144/webcface/releases/latest | grep .deb | grep https | grep amd64 | grep ${{matrix.distro}} | sed 's/"//g' | awk '{print $2}')
-        sudo apt-get update
-        sudo apt-get install -y ./*.deb
-        rm ./*.deb
-    - name: Install gcc-10
-      run: sudo apt-get install -y gcc-10 g++-10
-    - uses: actions/checkout@v4
-    - name: Configure CMake
-      env:
-        CC: ${{matrix.cc}}
-        CXX: ${{matrix.cxx}}
-      run: >
-        cmake -B ${{github.workspace}}/build
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -DWEBCFACE_TOOLS_VERSION_SUFFIX=${{matrix.distro}}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/')
-        -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-    - name: Create Deb Package
-      working-directory: ${{github.workspace}}/build
-      run: cpack -G DEB
-    - uses: actions/upload-artifact@v3
-      with:
-        name: deb-${{matrix.distro}}-amd64
-        path: ${{github.workspace}}/build/*.deb
-  
   build-multiarch:
     # The host should always be linux
     runs-on: ubuntu-22.04
@@ -64,30 +21,30 @@ jobs:
     # Run steps on a matrix of 4 arch/distro combinations
     strategy:
       matrix:
-        arch: [aarch64, armv7]
-        distro: [ubuntu22.04, ubuntu20.04]
+        arch: [amd64, aarch64, armv7]
+        distro: ["24.04", "22.04", "20.04"]
         include:
+          - arch: amd64
+            arch_name: amd64
+            base: ubuntu
           - arch: aarch64
             arch_name: arm64
+            base: arm64v8/ubuntu
           - arch: armv7
             arch_name: armhf
-          - distro: ubuntu22.04
-            cc: gcc-11
-            cxx: g++-11
-          - distro: ubuntu20.04
-            cc: gcc-10
-            cxx: g++-10
+            base: arm32v7/ubuntu
     steps:
       - uses: actions/checkout@v4
       - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
         with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.distro }}
+          arch: none
+          distro: none
+          base_image: ${{matrix.base}}:${{matrix.distro}}
 
           # Not required, but speeds up builds
-          githubToken: ${{ github.token }}
+          # githubToken: ${{ github.token }}
 
           # Create an artifacts directory
           # setup: |
@@ -102,8 +59,8 @@ jobs:
           #   artifact_name: git-${{ matrix.distro }}_${{ matrix.arch }}
           env: |
             distro: ${{matrix.distro}}
-            CC: ${{matrix.cc}}
-            CXX: ${{matrix.cxx}}
+            CC: gcc-10
+            CXX: g++-10
 
           # The shell to run commands with in the container
           shell: /bin/sh
@@ -117,9 +74,11 @@ jobs:
           install: |
             apt-get update -q -y
             apt-get install -q -y ca-certificates gpg wget lsb-release
+            if [ ${{matrix.distro}} = 20.04 ]; then
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc --no-check-certificate | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             apt-get update -q -y
+            fi
             apt-get install -q -y build-essential cmake file gcc-10 g++-10 curl git
 
           # Produce a binary artifact and place it in the mounted volume
@@ -129,21 +88,33 @@ jobs:
             apt-get update -q -y
             apt-get install -y ./*.deb
             rm ./*.deb
-            cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=${distro}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/') -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
+            cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWEBCFACE_TOOLS_VERSION_SUFFIX=ubuntu${distro}$(echo ${{github.ref_name}} | grep - | sed 's/^.*-\([0-9]\+\)$/-\1/') -DWEBCFACE_TOOLS_INSTALL_SERVICE=ON
             cmake --build build --config ${{env.BUILD_TYPE}}
             cd build
             cpack -G DEB
             
       - uses: actions/upload-artifact@v3
         with:
-          name: deb-${{matrix.distro}}-${{ matrix.arch }}
+          name: deb-ubuntu${{matrix.distro}}-${{ matrix.arch }}
           path: ${{github.workspace}}/build/*.deb
 
   release:
     runs-on: ubuntu-latest
-    needs: [build-amd64, build-multiarch]
+    needs: [build-multiarch]
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: deb-ubuntu24.04-amd64
+          path: ${{github.workspace}}/artifact
+      - uses: actions/download-artifact@v3
+        with:
+          name: deb-ubuntu24.04-aarch64
+          path: ${{github.workspace}}/artifact
+      - uses: actions/download-artifact@v3
+        with:
+          name: deb-ubuntu24.04-armv7
+          path: ${{github.workspace}}/artifact
       - uses: actions/download-artifact@v3
         with:
           name: deb-ubuntu22.04-amd64
