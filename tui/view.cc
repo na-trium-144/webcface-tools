@@ -268,9 +268,8 @@ ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
     for (const auto &o : cp.option()) {
         options->push_back(o.asStringRef());
     }
-    option.radiobox.entries = options.get();
     auto selected = std::make_shared<int>();
-    option.radiobox.selected = selected.get();
+    option.radiobox = {.entries = options.get(), .selected = selected.get()};
     if (cp.onChange()) {
         option.radiobox.on_change = [cp, func = *cp.onChange(),
                                      options_v = cp.option(), bind_ref,
