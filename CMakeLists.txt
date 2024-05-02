@@ -50,7 +50,7 @@ FetchContent_Declare(ftxui
 set(FTXUI_ENABLE_INSTALL OFF CACHE INTERNAL "" FORCE)
 FetchContent_MakeAvailable(ftxui)
 
-foreach(dir launcher send cv-capture tui)
+foreach(dir launcher send cv-capture tui ls)
     add_subdirectory(${dir})
 endforeach()
 
