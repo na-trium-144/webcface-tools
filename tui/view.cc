@@ -371,9 +371,9 @@ ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
     // ftxui::sliderにonChangeないのなんでだろう?
     auto slider = ftxui::Slider(ftxui::SliderOption<float>{
         .value = current_val.get(),
-        .min = cp.min().value_or(0),
-        .max = cp.max().value_or(0),
-        .increment = cp.step().value_or(1),
+        .min = static_cast<float>(cp.min().value_or(0)),
+        .max = static_cast<float>(cp.max().value_or(0)),
+        .increment = static_cast<float>(cp.step().value_or(1)),
         .direction = ftxui::Direction::Right,
     });
     return ftxui::Renderer(
