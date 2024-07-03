@@ -102,15 +102,16 @@ int main(int argc, char **argv) {
                 spdlog::warn("Escalating to {}.", sig_send);
             }
             for (auto &cmd : commands) {
-                if (cmd->is_running()) {
-                    cmd->kill(sig_send);
+                if (cmd->start_p->is_running()) {
+                    cmd->start_p->kill(sig_send);
                 }
             }
             sig_received = 0;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    } while (std::any_of(commands.begin(), commands.end(),
-                         [](const auto &cmd) { return cmd->is_running(); }));
+    } while (std::any_of(commands.begin(), commands.end(), [](const auto &cmd) {
+        return cmd->start_p->is_running();
+    }));
     return 1;
 #endif
 }

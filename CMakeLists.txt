@@ -1,16 +1,30 @@
 cmake_minimum_required(VERSION 3.5)
 project(webcface-tools
     LANGUAGES CXX
-    VERSION 1.4.4
+    VERSION 1.4.5
     HOMEPAGE_URL "https://github.com/na-trium-144/webcface-tools"
     DESCRIPTION "WebCFace Client Applications"
 )
-set(WEBCFACE_TOOLS_VERSION_SUFFIX "" CACHE STRING "version suffix")
+set(WEBCFACE_TOOLS_VERSION_SUFFIX "git" CACHE STRING "version suffix")
 option(WEBCFACE_TOOLS_INSTALL_SERVICE "generate install target for systemd service file" off)
 set(WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH "/etc/webcface/webcface-launcher.toml" CACHE STRING "webcface-launcher config file path for systemd service")
 
 set(TOOLS_VERSION ${PROJECT_VERSION})
-if(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
+if(WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "git")
+    execute_process(
+        COMMAND git describe --tags
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        OUTPUT_VARIABLE git_describe
+        ERROR_VARIABLE git_describe_error
+        RESULT_VARIABLE git_describe_ok
+    )
+    if(git_describe_ok STREQUAL 0)
+        string(REGEX MATCH "([-0-9a-g\\.]+)" NULL_OUT ${git_describe})
+        set(TOOLS_VERSION ${CMAKE_MATCH_1})
+    else()
+        message(STATUS "Failed to get version from git describe:\n${git_describe_error}")
+    endif()
+elseif(NOT WEBCFACE_TOOLS_VERSION_SUFFIX STREQUAL "")
     set(TOOLS_VERSION "${PROJECT_VERSION}-${WEBCFACE_TOOLS_VERSION_SUFFIX}")
 endif()
 
