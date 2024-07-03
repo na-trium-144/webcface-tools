@@ -127,28 +127,23 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
 #ifdef _WIN32
                     spdlog::info(" stop: TerminateProcess");
 #else
-                    spdlog::info(" stop: signal = {}", 2);
+                    spdlog::info(" stop: signal {}", 2);
 #endif
                 } else {
                     spdlog::info(" stop: disabled");
                     stop_p.emplace<0>(std::nullopt);
                 }
+            } else if (t_stop.is_number()) {
+                stop_p.emplace<2>(**t_stop.as_integer());
+#ifdef _WIN32
+                spdlog::info(" stop: TerminateProcess");
+#else
+                spdlog::info(" stop: signal {}", **t_stop.as_integer());
+#endif
             } else if (t_stop.is_table()) {
                 auto tb_stop = *t_stop.as_table();
-                auto t_sig = tb_stop[toml::path("signal")];
                 auto t_exec = tb_stop[toml::path("exec")];
-                if (t_sig) {
-                    if (!t_sig.is_number()) {
-                        spdlog::error("Error reading 'stop'");
-                        std::exit(1);
-                    }
-                    stop_p.emplace<2>(**t_sig.as_integer());
-#ifdef _WIN32
-                    spdlog::info(" stop: TerminateProcess");
-#else
-                    spdlog::info(" stop: signal = {}", **t_sig.as_integer());
-#endif
-                } else if (t_exec.is_string()) {
+                if (t_exec.is_string()) {
                     stop_p.emplace<1>(
                         parseTomlProcess(tb_stop, start_p->name + "/stop"));
                 } else {

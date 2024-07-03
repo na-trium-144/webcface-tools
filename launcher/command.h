@@ -113,7 +113,7 @@ struct Command : std::enable_shared_from_this<Command> {
                     cmd->start_p->kill(std::get<2>(cmd->stop_p));
                     break;
                 default:
-                    assert(false && "invalid stop signal");
+                    throw std::runtime_error("stop signal disabled");
                 }
             });
     }
