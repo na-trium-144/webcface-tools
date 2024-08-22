@@ -55,10 +55,27 @@ opencv_videoio_dep = dependency('OpenCV',
 tiny_process_library_dep = dependency('tiny-process-library')
 tomlplusplus_dep = dependency('tomlplusplus')
 cli11_dep = dependency('cli11')
+ftxui_screen_dep = dependency('ftxui',
+  method: 'cmake',
+  modules: ['ftxui::screen'],
+  fallback: ['ftxui', 'screen_dep'],
+)
+ftxui_dom_dep = dependency('ftxui',
+  method: 'cmake',
+  modules: ['ftxui::dom'],
+  fallback: ['ftxui', 'dom_dep'],
+)
+ftxui_component_dep = dependency('ftxui',
+  method: 'cmake',
+  modules: ['ftxui::component'],
+  fallback: ['ftxui', 'component_dep'],
+)
 
 subdir('launcher')
 subdir('send')
 subdir('cv-capture')
+subdir('tui')
+subdir('ls')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({
