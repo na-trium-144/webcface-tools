@@ -1,2 +1,8 @@
 build*/
-.cache/
+/out/
+/.vs/
+/CMakeSettings.json
+/.cache/
+/subprojects/*
+!/subprojects/*.wrap
+!/subprojects/packagefiles/

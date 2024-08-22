@@ -1,4 +1,5 @@
 #include <webcface/webcface.h>
+#include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
 #include <string>
 #include <vector>

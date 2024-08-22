@@ -1,6 +1,7 @@
 #pragma once
 #include <webcface/webcface.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <process.hpp>
 #include <string>
 #include <memory>
