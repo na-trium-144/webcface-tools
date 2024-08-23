@@ -1,4 +1,4 @@
-executable('webcface-ls',
+tools_ls = executable('webcface-ls',
   sources: [
     'main.cc',
   ],
@@ -10,3 +10,4 @@ executable('webcface-ls',
   ],
   install: true,
 )
+summary('Build ls', not is_disabler(tools_ls), bool_yn: true)

@@ -1,4 +1,4 @@
-executable('webcface-tui',
+tools_tui = executable('webcface-tui',
   sources: [
     'main.cc',
     'value.cc',
@@ -14,3 +14,4 @@ executable('webcface-tui',
   ],
   install: true,
 )
+summary('Build tui', not is_disabler(tools_tui), bool_yn: true)

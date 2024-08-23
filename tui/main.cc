@@ -42,9 +42,10 @@ int main(int argc, char **argv) {
         auto fp_colon = fp.find(':');
         std::string member_name = fp.substr(0, fp_colon);
         std::string field_name = fp.substr(fp_colon + 1);
-        if(!members.count(member_name)){
-            wcli.member(member_name).onSync().appendListener(
-                [&screen] { screen.PostEvent(ftxui::Event::Custom); });
+        if (!members.count(member_name)) {
+            wcli.member(member_name).onSync([&screen] {
+                screen.PostEvent(ftxui::Event::Custom);
+            });
             members.emplace(member_name);
         }
         auto value = wcli.member(member_name).value(field_name);

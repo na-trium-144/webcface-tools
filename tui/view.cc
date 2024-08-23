@@ -5,7 +5,6 @@
 #include <cctype>
 #include <webcface/member.h>
 #include <sstream>
-#include <eventpp/utilities/counterremover.h>
 
 ViewUIContainer::ViewUIContainer(const webcface::View &view,
                                  std::shared_ptr<std::string> help,
@@ -15,7 +14,7 @@ ViewUIContainer::ViewUIContainer(const webcface::View &view,
       focused_row(0), has_no_component(), help(help), result(result),
       light(light) {
     this->Add(ftxui::Container::Vertical({}, &focused_row));
-    view.prependListener([this] { this->updateLayout(); });
+    view.onChange([this] { this->updateLayout(); });
     this->updateLayout();
 }
 ftxui::Component viewComponent(const webcface::View &view,
@@ -28,14 +27,12 @@ void addViewComponent(ftxui::ScreenInteractive &screen,
                       ftxui::Component &container, const webcface::View &view,
                       std::shared_ptr<std::string> help,
                       std::shared_ptr<ftxui::Element> result, bool light) {
-    eventpp::counterRemover(view.callbackList())
-        .prepend(
-            [=, &screen, &container](const webcface::View &) {
-                screen.Post([=, &container] {
-                    container->Add(viewComponent(view, help, result, light));
-                });
-            },
-            1);
+    view.onChange([=, &screen, &container]() {
+        view.onChange([] {});
+        screen.Post([=, &container] {
+            container->Add(viewComponent(view, help, result, light));
+        });
+    });
 }
 
 void ViewUIContainer::updateLayout() {
@@ -166,8 +163,10 @@ ftxui::Component
 ViewUIContainer::inputComponent(const webcface::ViewComponent &cp) const {
     auto bind_ref = std::make_shared<std::string>();
     if (cp.bind()) {
-        *bind_ref = cp.bind()->get();
-        cp.bind()->appendListener([bind_ref](const auto &b) { *bind_ref = b; });
+        *bind_ref = cp.bind()->asString();
+        cp.bind()->appendListener([bind_ref](const webcface::Variant &b) {
+            *bind_ref = b.asString();
+        });
     }
     auto content_ref = std::make_shared<std::string>();
     auto is_error = std::make_shared<bool>(false);
@@ -260,8 +259,10 @@ ftxui::Component
 ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
     auto bind_ref = std::make_shared<std::string>();
     if (cp.bind()) {
-        *bind_ref = cp.bind()->get();
-        cp.bind()->appendListener([bind_ref](const auto &b) { *bind_ref = b; });
+        *bind_ref = cp.bind()->asString();
+        cp.bind()->appendListener([bind_ref](const webcface::Variant &b) {
+            *bind_ref = b.asString();
+        });
     }
     ftxui::DropdownOption option{};
     auto options = std::make_shared<std::vector<std::string>>();
@@ -331,8 +332,10 @@ ViewUIContainer::toggleComponent(const webcface::ViewComponent &cp) const {
         convertColor(webcface::ViewColor::black, light));
     auto bind_ref = std::make_shared<std::string>();
     if (cp.bind()) {
-        *bind_ref = cp.bind()->get();
-        cp.bind()->appendListener([bind_ref](const auto &b) { *bind_ref = b; });
+        *bind_ref = cp.bind()->asString();
+        cp.bind()->appendListener([bind_ref](const webcface::Variant &b) {
+            *bind_ref = b.asString();
+        });
     }
     option.transform = [bind_ref](const ftxui::EntryState &s) {
         if (s.focused) {
@@ -362,7 +365,7 @@ ftxui::Component
 ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
     auto bind_ref = std::make_shared<float>();
     if (cp.bind()) {
-        *bind_ref = cp.bind()->get();
+        *bind_ref = cp.bind()->asDouble();
         cp.bind()->appendListener(
             [bind_ref](const auto &b) { *bind_ref = b.get(); });
     }
@@ -410,7 +413,7 @@ ftxui::Component
 ViewUIContainer::checkComponent(const webcface::ViewComponent &cp) const {
     auto bind_ref = std::make_shared<bool>();
     if (cp.bind()) {
-        *bind_ref = cp.bind()->get();
+        *bind_ref = cp.bind()->asDouble();
         cp.bind()->appendListener(
             [bind_ref](const auto &b) { *bind_ref = b.get(); });
     }

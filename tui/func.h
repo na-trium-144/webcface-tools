@@ -1,4 +1,5 @@
 #pragma once
+#include <ftxui/dom/elements.hpp>
 #include <webcface/member.h>
 #include <webcface/func.h>
 
@@ -20,17 +21,17 @@ inline void runAsync(const webcface::Func &func,
         ftxui::text("Connecting... (" + name + ")") |
             ftxui::color(ftxui::Color::Green),
     });
-    res.onStarted().append([=](bool started) {
+    res.onReach([=]() {
         *result = ftxui::hbox({
             num,
             ftxui::text("Running... (" + name + ")") |
                 ftxui::color(ftxui::Color::Blue),
         });
     });
-    res.onResult().append([=](std::shared_future<webcface::ValAdaptor> res_f) {
-        try {
-            auto result_val = res_f.get();
-            if (!result_val.asStringRef().empty()) {
+    res.onFinish([=]() {
+        if (!res.isError()) {
+            auto result_val = res.response();
+            if (!result_val.empty()) {
                 *result = ftxui::hbox({
                     num,
                     ftxui::text("ok, \"" + result_val.asStringRef() + "\" (" +
@@ -44,10 +45,10 @@ inline void runAsync(const webcface::Func &func,
                         ftxui::color(ftxui::Color::Black),
                 });
             }
-        } catch (const std::exception &e) {
+        } else {
             *result = ftxui::hbox({
                 num,
-                ftxui::text("Error: "s + e.what() + " (" + name + ")") |
+                ftxui::text("Error: "s + res.rejection() + " (" + name + ")") |
                     ftxui::color(ftxui::Color::Red),
             });
         }
