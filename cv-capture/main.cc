@@ -7,6 +7,7 @@
 #include <CLI/CLI.hpp>
 #include <spdlog/spdlog.h>
 #include "../common/common.h"
+#include "../common/cv2imgframe.h"
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace CV-Capture")};
@@ -57,7 +58,7 @@ int main(int argc, char **argv) {
             if (image.empty()) {
                 break;
             }
-            wcli.image(field).set(image);
+            wcli.image(field).set(cv2ImgFrame(image));
             wcli.sync();
         }
         if (!wcli.connected()) {

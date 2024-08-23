@@ -1,4 +1,4 @@
-executable('webcface-send',
+tools_send = executable('webcface-send',
   sources: [
     'main.cc',
   ],
@@ -9,3 +9,4 @@ executable('webcface-send',
   ],
   install: true,
 )
+summary('Build send', not is_disabler(tools_send), bool_yn: true)

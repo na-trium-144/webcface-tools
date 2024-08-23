@@ -1,4 +1,4 @@
-executable('webcface-launcher',
+tools_launcher = executable('webcface-launcher',
   sources: [
     'main.cc',
     'launcher.cc',
@@ -12,3 +12,4 @@ executable('webcface-launcher',
   ],
   install: true,
 )
+summary('Build launcher', not is_disabler(tools_launcher), bool_yn: true)
