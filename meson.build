@@ -53,7 +53,11 @@ opencv_videoio_dep = dependency('OpenCV',
   disabler: true,
 )
 tiny_process_library_dep = dependency('tiny-process-library')
-tomlplusplus_dep = dependency('tomlplusplus')
+tomlplusplus_dep = dependency('tomlplusplus',
+  default_options: [
+    'compile_library=false',
+  ],
+)
 cli11_dep = dependency('cli11')
 
 subdir('launcher')

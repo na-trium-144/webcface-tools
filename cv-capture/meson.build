@@ -1,4 +1,4 @@
-executable('webcface-cv-capture',
+tools_cv_capture = executable('webcface-cv-capture',
   sources: [
     'main.cc',
   ],
@@ -11,3 +11,4 @@ executable('webcface-cv-capture',
   ],
   install: true,
 )
+summary('Build cv-capture', not is_disabler(tools_cv_capture), bool_yn: true)
