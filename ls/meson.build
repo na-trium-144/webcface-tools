@@ -4,6 +4,7 @@ tools_ls = executable('webcface-ls',
   ],
   dependencies: [
     webcface_dep,
+    spdlog_dep,
     cli11_dep,
     ftxui_screen_dep,
     ftxui_dom_dep,
