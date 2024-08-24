@@ -11,5 +11,6 @@ tools_launcher = executable('webcface-launcher',
     tomlplusplus_dep,
   ],
   install: true,
+  install_rpath: relative_rpath,
 )
 summary('Build launcher', not is_disabler(tools_launcher), bool_yn: true)

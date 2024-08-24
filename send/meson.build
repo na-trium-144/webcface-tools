@@ -8,5 +8,6 @@ tools_send = executable('webcface-send',
     spdlog_dep,
   ],
   install: true,
+  install_rpath: relative_rpath,
 )
 summary('Build send', not is_disabler(tools_send), bool_yn: true)
