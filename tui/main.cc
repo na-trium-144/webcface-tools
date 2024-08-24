@@ -1,3 +1,4 @@
+#include <ftxui/component/loop.hpp>
 #include <webcface/client.h>
 #include <CLI/CLI.hpp>
 #include <ftxui/dom/elements.hpp>
@@ -57,12 +58,11 @@ int main(int argc, char **argv) {
         auto view = wcli.member(member_name).view(field_name);
         addViewComponent(screen, container, view, help, result, light);
     }
-    wcli.waitConnection();
 
     std::string help_prev = "";
     ftxui::Element result_prev = nullptr;
     ftxui::Element status = nullptr;
-    screen.Loop(ftxui::Renderer(container, [&] {
+    auto screen_component = ftxui::Renderer(container, [&] {
         if (*help != help_prev) {
             help_prev = *help;
             status = ftxui::text(*help) | ftxui::color(ftxui::Color::Black);
@@ -75,5 +75,21 @@ int main(int argc, char **argv) {
                             (status ? status : ftxui::emptyElement()) |
                                 ftxui::bgcolor(ftxui::Color::White) |
                                 ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1)});
-    }));
+    });
+
+    ftxui::Loop loop(&screen, screen_component);
+
+    // ftxui::Loopの初期化後でないとなぜかイベントが動かない
+    wcli.waitConnection();
+
+    while (!loop.HasQuitted()) {
+        wcli.loopSyncFor(std::chrono::milliseconds(10));
+        loop.RunOnce();
+    }
+    // std::thread sync_thread([&]{
+    //     wcli.loopSync();
+    // });
+
+    // wcli.close();
+    // sync_thread.join();
 }
