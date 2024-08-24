@@ -10,5 +10,6 @@ tools_cv_capture = executable('webcface-cv-capture',
     opencv_videoio_dep,
   ],
   install: true,
+  install_rpath: relative_rpath,
 )
 summary('Build cv-capture', not is_disabler(tools_cv_capture), bool_yn: true)

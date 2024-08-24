@@ -18,4 +18,5 @@ webcface::ImageFrame cv2ImgFrame(cv::Mat &img_mat) {
                         img_mat.cols * img_mat.channels());
         }
     }
+    return img_frame;
 }

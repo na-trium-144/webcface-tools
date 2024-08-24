@@ -31,6 +31,13 @@ add_project_arguments(
   language: ['cpp'],
 )
 
+relative_rpath = ''
+if host_machine.system() == 'linux'
+  relative_rpath = '$ORIGIN' / '..' / get_option('libdir')
+elif host_machine.system() == 'darwin'
+  relative_rpath = '@loader_path' / '..' / get_option('libdir')
+endif
+
 if cxx.get_argument_syntax() == 'msvc'
   add_project_arguments(
     '/utf-8',
