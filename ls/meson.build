@@ -10,5 +10,6 @@ tools_ls = executable('webcface-ls',
     ftxui_dom_dep,
   ],
   install: true,
+  install_rpath: relative_rpath,
 )
 summary('Build ls', not is_disabler(tools_ls), bool_yn: true)

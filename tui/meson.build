@@ -13,5 +13,6 @@ tools_tui = executable('webcface-tui',
     ftxui_component_dep,
   ],
   install: true,
+  install_rpath: relative_rpath,
 )
 summary('Build tui', not is_disabler(tools_tui), bool_yn: true)
