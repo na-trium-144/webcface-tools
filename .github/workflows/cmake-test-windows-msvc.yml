@@ -1,6 +1,6 @@
 # This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake Test (Windows MSVC)
+name: Meson Test (Windows MSVC)
 
 on:
   push:
@@ -16,31 +16,32 @@ jobs:
   test-windows-msvc:
     runs-on: windows-2019
     steps:
-    - name: install latest webcface
-      run: |
-        $assets = (Invoke-WebRequest https://api.github.com/repos/na-trium-144/webcface-windows-package/releases/latest | ConvertFrom-Json).assets
-        $url = ($assets | Where-Object {$_.browser_download_url -like "*.exe"}).browser_download_url
-        Invoke-WebRequest $url -OutFile webcface.exe
-        Start-Process webcface.exe -ArgumentList "/S" -Wait
-        Remove-Item webcface.exe
 
     - uses: actions/checkout@v4
+    - name: download latest webcface
+      run: |
+        Invoke-WebRequest https://github.com/na-trium-144/webcface/releases/download/v2.0.0/libwebcface-windows-x64.zip -OutFile webcface.zip
+        Expand-Archive -Path webcface.zip -DestinationPath webcface
+        Remove-Item webcface.zip
+    - name: Add webcface to path
+      run: echo "${{github.workspace}}\webcface\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Install Meson
+      uses: crazy-max/ghaction-chocolatey@v3
+      with:
+        args: install -y meson
+    - name: Add meson to path
+      run: echo "c:\Program Files\Meson" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     
-    - name: Configure CMake
-      # env:
-      #   CC: gcc-10
-      #   CXX: g++-10
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} "-DCMAKE_PREFIX_PATH=C:\Program Files\WebCFace"
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    # - name: Test
-    #   working-directory: ${{github.workspace}}/build
-    #   # Execute tests defined by the CMake configuration.
-    #   # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-    #   run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+    - name: Setup Meson
+      run: >
+        meson setup build
+        --buildtype=debug
+    - name: Compile
+      run: |
+        meson compile -C build
 

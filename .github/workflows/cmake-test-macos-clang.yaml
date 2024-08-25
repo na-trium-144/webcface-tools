@@ -1,4 +1,4 @@
-name: CMake Test (MacOS Clang)
+name: Meson Test (MacOS Clang)
 
 on:
   push:
@@ -6,23 +6,27 @@ on:
   pull_request:
     branches: []
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Debug
-
 jobs:
   test-macos-clang:
     runs-on: macos-latest
     steps:
+    - name: Install webcface
+      run: |
+        curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.0.0/libwebcface-macos-universal.zip
+        sudo unzip libwebcface-macos-universal.zip -d /opt/webcface
+        rm libwebcface-macos-universal.zip
+
     - uses: actions/checkout@v4
-    - name: Update Homebrew
-      run: brew update --preinstall
-    - name: Install webcface from Homebrew
-      run: env HOMEBREW_NO_AUTO_UPDATE=1 brew install na-trium-144/webcface/webcface || true
+    - name: Install meson
+      run: |
+        brew update --preinstall
+        env HOMEBREW_NO_AUTO_UPDATE=1 brew install meson
 
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
+    - name: Setup Meson
+      env:
+        PKG_CONFIG_PATH: "/opt/webcface/lib/pkgconfig"
+      run: >
+        meson setup build
+        --buildtype=debug
+    - name: Compile
+      run: meson compile -C build || meson compile -C build
