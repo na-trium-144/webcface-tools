@@ -1,4 +1,5 @@
 #include <webcface/webcface.h>
+#include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
 #include <string>
 #include <vector>
@@ -6,6 +7,7 @@
 #include <chrono>
 #include <iostream>
 #include "../common/common.h"
+#include "../common/logger_sink.h"
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace Send")};
@@ -35,8 +37,8 @@ int main(int argc, char **argv) {
 
     WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
 
-    auto logger =
-        std::make_shared<spdlog::logger>("webcface-send", wcli.loggerSink());
+    auto logger = std::make_shared<spdlog::logger>(
+        "webcface-send", std::make_shared<LoggerSink>(wcli));
     while (!std::cin.eof()) {
         std::string input, input_org;
         std::getline(std::cin, input_org);
