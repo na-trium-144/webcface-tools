@@ -47,18 +47,6 @@ endif
 
 webcface_dep = dependency('webcface', version: '>=2.0.0')
 spdlog_dep = dependency('spdlog')
-opencv_core_dep = dependency('OpenCV',
-  method: 'cmake',
-  modules: ['opencv_core'],
-  required: false,
-  disabler: true,
-)
-opencv_videoio_dep = dependency('OpenCV',
-  method: 'cmake',
-  modules: ['opencv_videoio'],
-  required: false,
-  disabler: true,
-)
 tiny_process_library_dep = dependency('tiny-process-library')
 tomlplusplus_dep = dependency('tomlplusplus',
   default_options: [
@@ -84,7 +72,6 @@ ftxui_component_dep = dependency('ftxui',
 
 subdir('launcher')
 subdir('send')
-subdir('cv-capture')
 subdir('tui')
 subdir('ls')
 
