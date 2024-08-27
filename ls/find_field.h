@@ -1,3 +1,4 @@
+#pragma once
 #include <webcface/member.h>
 #include <webcface/value.h>
 #include <webcface/text.h>
@@ -13,8 +14,9 @@
 #include <unordered_set>
 #include <utility>
 
-
-// memberの中で指定したfield名で始まるものを列挙
+// memberの中で指定したfield名で始まるものを列挙し、
+// 型にあわせてそれぞれコールバックを呼んでelement化したものをmultimapで返す
+// グループ化できるものは別で名前だけunordered_setにまとめられる
 template <typename FVal, typename FText, typename FFunc, typename FView,
           typename F2D, typename FIm, typename F3D, typename FRMdl>
 std::pair<std::multimap<std::string, ftxui::Element>,

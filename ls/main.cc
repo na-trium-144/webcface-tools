@@ -47,10 +47,14 @@ int main(int argc, char **argv) {
             document = listFields(wcli, fields, recursive);
         }
     } else {
-        if (!recursive) {
-            document = listMemberShort(wcli);
+        if (fields.empty()) {
+            if (!recursive) {
+                document = listMemberShort(wcli);
+            } else {
+                document = listMemberShortRecurse(wcli);
+            }
         } else {
-            document = listMemberShortRecurse(wcli);
+            document = listFieldsShort(wcli, fields, recursive);
         }
     }
 

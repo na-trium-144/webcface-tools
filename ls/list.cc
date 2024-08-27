@@ -1,6 +1,6 @@
 #include "./main.h"
 #include "./find_field.h"
-#include <iostream>
+#include "./parse_field_arg.h"
 
 ftxui::Element listMemberAll(webcface::Client &wcli, bool recursive) {
     std::vector<ftxui::Element> elem_members;
@@ -18,41 +18,24 @@ ftxui::Element listMemberAll(webcface::Client &wcli, bool recursive) {
 ftxui::Element listFields(webcface::Client &wcli,
                           const std::vector<std::string> &fields,
                           bool recursive) {
-    auto wcli_members = wcli.members();
     std::vector<ftxui::Element> elem_members;
-    for (const std::string &fp : fields) {
-        auto fp_colon = fp.find(':');
-        std::string member_name;
-        std::string field_name;
-        if (fp_colon == std::string::npos) {
-            member_name = fp;
-        } else {
-            member_name = fp.substr(0, fp_colon);
-            field_name = fp.substr(fp_colon + 1);
-        }
-        if (std::find_if(wcli_members.begin(), wcli_members.end(),
-                         [&](const webcface::Member &m) {
-                             return m.name() == member_name;
-                         }) == wcli_members.end()) {
-            std::cerr << "Member '" << member_name << "': not found"
-                      << std::endl;
-            ok = false;
-            continue;
-        }
-        auto m = wcli.member(member_name);
-        int tab = 0;
-        if (fields.size() > 1) {
-            elem_members.push_back(ftxui::hbox({
-                elemMember(m),
-                elemColon(),
-                ftxui::text(field_name),
-            }));
-            tab = 1;
-        }
-        for (const auto &it : fieldInfo(m, field_name, recursive, tab)) {
-            elem_members.push_back(it.second);
-        }
-    }
+    parseFieldArgs(
+        wcli, fields,
+        [&](const std::string &member_name, const std::string &field_name) {
+            auto m = wcli.member(member_name);
+            int tab = 0;
+            if (fields.size() > 1) {
+                elem_members.push_back(ftxui::hbox({
+                    elemMember(m),
+                    elemColon(),
+                    ftxui::text(field_name),
+                }));
+                tab = 1;
+            }
+            for (const auto &it : fieldInfo(m, field_name, recursive, tab)) {
+                elem_members.push_back(it.second);
+            }
+        });
     return ftxui::vbox(elem_members);
 }
 
