@@ -4,16 +4,16 @@
 #include <ftxui/screen/screen.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
-#include <vector>
 #include "../common/common.h"
 #include "./main.h"
+
+bool ok = true;
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace ls")};
 
     std::string wcli_host = "127.0.0.1";
     int wcli_port = WEBCFACE_DEFAULT_PORT;
-    int timeout = 10;
     app.add_option("-a,--address", wcli_host,
                    "Server address (default: 127.0.0.1)");
     app.add_option("-p,--port", wcli_port,
@@ -22,6 +22,10 @@ int main(int argc, char **argv) {
     bool list = false, recursive = false;
     app.add_flag("-l", list, "Long listing format");
     app.add_flag("-r", recursive, "Recursively list fields");
+
+    std::vector<std::string> fields;
+    app.add_option("fields", fields,
+                   "Fields to display as 'memberName:name/of/field'");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -37,7 +41,11 @@ int main(int argc, char **argv) {
 
     ftxui::Element document;
     if (list) {
-        document = listMember(wcli, recursive);
+        if (fields.empty()) {
+            document = listMemberAll(wcli, recursive);
+        } else {
+            document = listFields(wcli, fields, recursive);
+        }
     } else {
         if (!recursive) {
             document = listMemberShort(wcli);
@@ -50,4 +58,6 @@ int main(int argc, char **argv) {
                                         ftxui::Dimension::Fit(document));
     ftxui::Render(screen, document);
     screen.Print();
+
+    return !ok;
 }

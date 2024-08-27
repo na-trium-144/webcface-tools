@@ -8,7 +8,6 @@
 #include <vector>
 #include <unordered_set>
 #include "../common/common.h"
-#include "status.h"
 #include "value.h"
 #include "text.h"
 #include "view.h"
@@ -29,7 +28,7 @@ int main(int argc, char **argv) {
 
     std::vector<std::string> fields;
     app.add_option("fields", fields,
-                   "Fields to display as 'memberName:name/of/field'");
+                   "Fields to display as 'memberName:name.of.field'");
 
     CLI11_PARSE(app, argc, argv);
 

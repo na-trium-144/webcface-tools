@@ -1,157 +1,209 @@
 #include "./main.h"
-#include <map>
-#include <webcface/value.h>
-#include <webcface/text.h>
-#include <webcface/view.h>
-#include <webcface/func.h>
-#include <webcface/canvas2d.h>
-#include <webcface/canvas3d.h>
-#include <webcface/image.h>
-#include <webcface/robot_model.h>
+#include "./find_field.h"
+#include <iostream>
 
-ftxui::Element listMember(webcface::Client &wcli, bool recursive) {
+ftxui::Element listMemberAll(webcface::Client &wcli, bool recursive) {
     std::vector<ftxui::Element> elem_members;
     for (const auto &m : wcli.members()) {
-        ftxui::Decorator ping_color;
-        std::string ping_str = std::to_string(m.pingStatus().value_or(0));
-        if (!m.pingStatus()) {
-            ping_color = ftxui::color(ftxui::Color::Red);
-            ping_str = "?";
-        } else if (*m.pingStatus() < 10) {
-            ping_color = ftxui::color(ftxui::Color::Green);
-        } else if (*m.pingStatus() < 100) {
-            ping_color = ftxui::color(ftxui::Color::Yellow);
-        } else {
-            ping_color = ftxui::color(ftxui::Color::Red);
-        }
-        elem_members.push_back(ftxui::hbox({
-            elemMember(m),
-            elemColon(),
-            elemSpace1(),
-            ftxui::text(m.libName()) | ftxui::dim,
-            elemSpace1(),
-            ftxui::text(m.libVersion()) | ftxui::dim,
-            elemSpace1(),
-            ftxui::text("[" + ping_str + " ms]") | ping_color,
-        }));
-
+        elem_members.push_back(memberInfo(m));
         if (recursive) {
-            std::multimap<std::string, ftxui::Element> elem_fields;
-            if (!m.valueEntries().empty()) {
-                for (const auto &v : m.valueEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [vl]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Blue),
-                                  }));
-                }
-            }
-            if (!m.textEntries().empty()) {
-                for (const auto &v : m.textEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [tx]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Cyan),
-                                  }));
-                }
-            }
-            if (!m.funcEntries().empty()) {
-                for (const auto &v : m.funcEntries()) {
-                    std::vector<ftxui::Element> fn_args;
-                    for (const auto &a : v.args()) {
-                        if (!fn_args.empty()) {
-                            fn_args.push_back(ftxui::text(", "));
-                        }
-                        if (!a.name().empty()) {
-                            fn_args.push_back(ftxui::text(a.name()));
-                            fn_args.push_back(ftxui::text(": ") | ftxui::dim);
-                        }
-                        switch (a.type()) {
-                        case webcface::ValType::int_:
-                            fn_args.push_back(ftxui::text("int") | ftxui::dim);
-                            break;
-                        case webcface::ValType::float_:
-                            fn_args.push_back(ftxui::text("float") |
-                                              ftxui::dim);
-                            break;
-                        case webcface::ValType::bool_:
-                            fn_args.push_back(ftxui::text("bool") | ftxui::dim);
-                            break;
-                        case webcface::ValType::string_:
-                            fn_args.push_back(ftxui::text("str") | ftxui::dim);
-                            break;
-                        default:
-                            fn_args.push_back(ftxui::text("?") | ftxui::dim);
-                            break;
-                        }
-                    }
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [fn]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Green),
-                                      ftxui::text("("),
-                                      ftxui::hbox(fn_args),
-                                      ftxui::text(")"),
-                                  }));
-                }
-            }
-            if (!m.viewEntries().empty()) {
-                for (const auto &v : m.viewEntries()) {
-                    elem_fields.emplace(v.name(),
-                                        ftxui::hbox({
-                                            ftxui::text(" [vi]") | ftxui::dim,
-                                            ftxui::text(v.name()) |
-                                                ftxui::color(ftxui::Color::Red),
-                                        }));
-                }
-            }
-            if (!m.canvas2DEntries().empty()) {
-                for (const auto &v : m.canvas2DEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [2d]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Yellow),
-                                  }));
-                }
-            }
-            if (!m.imageEntries().empty()) {
-                for (const auto &v : m.imageEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [im]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Yellow),
-                                  }));
-                }
-            }
-            if (!m.canvas3DEntries().empty()) {
-                for (const auto &v : m.canvas3DEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [3d]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Yellow),
-                                  }));
-                }
-            }
-            if (!m.robotModelEntries().empty()) {
-                for (const auto &v : m.robotModelEntries()) {
-                    elem_fields.emplace(
-                        v.name(), ftxui::hbox({
-                                      ftxui::text(" [rm]") | ftxui::dim,
-                                      ftxui::text(v.name()) |
-                                          ftxui::color(ftxui::Color::Yellow),
-                                  }));
-                }
-            }
-            for (const auto &it : elem_fields) {
+            for (const auto &it : fieldInfo(m, "", recursive, 1)) {
                 elem_members.push_back(it.second);
             }
         }
     }
     return ftxui::vbox(elem_members);
+}
+
+ftxui::Element listFields(webcface::Client &wcli,
+                          const std::vector<std::string> &fields,
+                          bool recursive) {
+    auto wcli_members = wcli.members();
+    std::vector<ftxui::Element> elem_members;
+    for (const std::string &fp : fields) {
+        auto fp_colon = fp.find(':');
+        std::string member_name;
+        std::string field_name;
+        if (fp_colon == std::string::npos) {
+            member_name = fp;
+        } else {
+            member_name = fp.substr(0, fp_colon);
+            field_name = fp.substr(fp_colon + 1);
+        }
+        if (std::find_if(wcli_members.begin(), wcli_members.end(),
+                         [&](const webcface::Member &m) {
+                             return m.name() == member_name;
+                         }) == wcli_members.end()) {
+            std::cerr << "Member '" << member_name << "': not found"
+                      << std::endl;
+            ok = false;
+            continue;
+        }
+        auto m = wcli.member(member_name);
+        int tab = 0;
+        if (fields.size() > 1) {
+            elem_members.push_back(ftxui::hbox({
+                elemMember(m),
+                elemColon(),
+                ftxui::text(field_name),
+            }));
+            tab = 1;
+        }
+        for (const auto &it : fieldInfo(m, field_name, recursive, tab)) {
+            elem_members.push_back(it.second);
+        }
+    }
+    return ftxui::vbox(elem_members);
+}
+
+
+ftxui::Element memberInfo(const webcface::Member &m) {
+    ftxui::Decorator ping_color;
+    std::string ping_str = std::to_string(m.pingStatus().value_or(0));
+    if (!m.pingStatus()) {
+        ping_color = ftxui::color(ftxui::Color::Red);
+        ping_str = "?";
+    } else if (*m.pingStatus() < 10) {
+        ping_color = ftxui::color(ftxui::Color::Green);
+    } else if (*m.pingStatus() < 100) {
+        ping_color = ftxui::color(ftxui::Color::Yellow);
+    } else {
+        ping_color = ftxui::color(ftxui::Color::Red);
+    }
+    return ftxui::hbox({
+        elemMember(m),
+        elemColon(),
+        elemSpace1(),
+        ftxui::text(m.libName()) | ftxui::dim,
+        elemSpace1(),
+        ftxui::text(m.libVersion()) | ftxui::dim,
+        elemSpace1(),
+        ftxui::text("[" + ping_str + " ms]") | ping_color,
+    });
+}
+
+std::multimap<std::string, ftxui::Element>
+fieldInfo(const webcface::Member &m, const std::string &field_prefix,
+          bool recursive, int tab) {
+    auto [elem_fields, folders] = findFields(
+        m, field_prefix,
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[vl]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Blue),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[tx]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Cyan),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            std::vector<ftxui::Element> fn_args;
+            for (const auto &a : v.args()) {
+                if (!fn_args.empty()) {
+                    fn_args.push_back(ftxui::text(", "));
+                }
+                if (!a.name().empty()) {
+                    fn_args.push_back(ftxui::text(a.name()));
+                    fn_args.push_back(ftxui::text(": ") | ftxui::dim);
+                }
+                switch (a.type()) {
+                case webcface::ValType::int_:
+                    fn_args.push_back(ftxui::text("int") | ftxui::dim);
+                    break;
+                case webcface::ValType::float_:
+                    fn_args.push_back(ftxui::text("float") | ftxui::dim);
+                    break;
+                case webcface::ValType::bool_:
+                    fn_args.push_back(ftxui::text("bool") | ftxui::dim);
+                    break;
+                case webcface::ValType::string_:
+                    fn_args.push_back(ftxui::text("str") | ftxui::dim);
+                    break;
+                default:
+                    fn_args.push_back(ftxui::text("?") | ftxui::dim);
+                    break;
+                }
+            }
+            return ftxui::hbox({
+                ftxui::text("[fn]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Green),
+                ftxui::text("("),
+                ftxui::hbox(fn_args),
+                ftxui::text(")"),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[vi]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Red),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[2d]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Yellow),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[im]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Yellow),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[3d]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Yellow),
+            });
+        },
+        [&](const std::string &name, auto &v) {
+            return ftxui::hbox({
+                ftxui::text("[rm]") | ftxui::dim,
+                elemSpace1(),
+                ftxui::text(name) | ftxui::color(ftxui::Color::Yellow),
+            });
+        });
+    for (const auto &fn : folders) {
+        elem_fields.emplace(fn, ftxui::hbox({
+                                    ftxui::text("-   "),
+                                    elemSpace1(),
+                                    ftxui::text(fn),
+                                }));
+        if (recursive) {
+            std::string fn_absolute;
+            if (field_prefix.empty()) {
+                fn_absolute = fn;
+            } else {
+                fn_absolute = field_prefix + "." + fn;
+            }
+            for (const auto &it_subdir :
+                 fieldInfo(m, fn_absolute, recursive, 1)) {
+                elem_fields.emplace(fn + "." + it_subdir.first,
+                                    it_subdir.second);
+            }
+        }
+    }
+    if (tab > 0) {
+        for (auto it = elem_fields.begin(); it != elem_fields.end(); it++) {
+            it->second = ftxui::hbox({
+                ftxui::emptyElement() |
+                    ftxui::size(ftxui::WIDTH, ftxui::EQUAL, tab),
+                it->second,
+            });
+        }
+    }
+    if (elem_fields.empty()) {
+        ok = false;
+    }
+    return elem_fields;
 }
