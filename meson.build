@@ -1,5 +1,5 @@
 project('webcface-tools', 'cpp',
-  version: '2.0.0',
+  version: '2.0.1',
   license: 'MIT',
   meson_version: '>=1.1',
   default_options: [
@@ -53,7 +53,7 @@ tomlplusplus_dep = dependency('tomlplusplus',
     'compile_library=false',
   ],
 )
-cli11_dep = dependency('cli11')
+cli11_dep = dependency('cli11', 'CLI11')
 ftxui_screen_dep = dependency('ftxui',
   method: 'cmake',
   modules: ['ftxui::screen'],
