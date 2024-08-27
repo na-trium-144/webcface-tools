@@ -1,6 +1,9 @@
 tools_ls = executable('webcface-ls',
   sources: [
     'main.cc',
+    'elements.cc',
+    'list.cc',
+    'short.cc',
   ],
   dependencies: [
     webcface_dep,
