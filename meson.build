@@ -80,7 +80,7 @@ if host_machine.system() == 'linux'
     'WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH': get_option('launcher_config_path'),
   })
   configure_file(
-    input: 'webcface-launcher.service.in',
+    input: 'scripts' / 'webcface-launcher.service.in',
     output: 'webcface-launcher.service',
     configuration: conf_data,
     install: true,
