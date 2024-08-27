@@ -270,7 +270,8 @@ ViewUIContainer::dropdownComponent(const webcface::ViewComponent &cp) const {
         options->push_back(o.asStringRef());
     }
     auto selected = std::make_shared<int>();
-    option.radiobox = {.entries = options.get(), .selected = selected.get()};
+    option.radiobox.entries = options.get();
+    option.radiobox.selected = selected.get();
     if (cp.onChange()) {
         option.radiobox.on_change = [cp, func = *cp.onChange(),
                                      options_v = cp.option(), bind_ref,
@@ -372,13 +373,13 @@ ViewUIContainer::sliderComponent(const webcface::ViewComponent &cp) const {
     auto prev_val = std::make_shared<float>(*bind_ref);
     auto current_val = std::make_shared<float>(*bind_ref);
     // ftxui::sliderにonChangeないのなんでだろう?
-    auto slider = ftxui::Slider(ftxui::SliderOption<float>{
-        .value = current_val.get(),
-        .min = static_cast<float>(cp.min().value_or(0)),
-        .max = static_cast<float>(cp.max().value_or(0)),
-        .increment = static_cast<float>(cp.step().value_or(1)),
-        .direction = ftxui::Direction::Right,
-    });
+    ftxui::SliderOption<float> slider_option;
+    slider_option.value = current_val.get();
+    slider_option.min = static_cast<float>(cp.min().value_or(0));
+    slider_option.max = static_cast<float>(cp.max().value_or(0));
+    slider_option.increment = static_cast<float>(cp.step().value_or(1));
+    slider_option.direction = ftxui::Direction::Right;
+    auto slider = ftxui::Slider(slider_option);
     return ftxui::Renderer(
         slider, [slider, bind_ref, prev_val, current_val, func = cp.onChange(),
                  min = cp.min().value_or(0), max = cp.max().value_or(0),
