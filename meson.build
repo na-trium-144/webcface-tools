@@ -53,7 +53,7 @@ tomlplusplus_dep = dependency('tomlplusplus',
     'compile_library=false',
   ],
 )
-cli11_dep = dependency('cli11')
+cli11_dep = dependency('cli11', 'CLI11')
 ftxui_screen_dep = dependency('ftxui',
   method: 'cmake',
   modules: ['ftxui::screen'],
