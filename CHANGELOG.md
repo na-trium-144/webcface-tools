@@ -1,3 +1,19 @@
+## [2.0.1] - 2024-08-27
+### Fixed
+* cli11のパスを通していてもnot foundになっていたのを修正 (#48)
+
+## [2.0.0] - 2024-08-27
+### Changed
+* Mesonに移行、WebCFace ver2に合わせて修正 (#45)
+* webcface-cv-capture 削除
+### Added
+* webcface-tui, webcface-ls (#46)
+
+## [1.4.5] - 2024-07-03
+### Added
+* launcherのstopボタンの動作を変更するオプションついか
+* toolsをビルドしたときのバージョン番号にgit describeの出力を追加
+
 ## [1.4.4] - 2024-04-26
 ### Added
 * Ubuntu24.04のビルドを追加

@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/ArthurSonzogni/ftxui.git
+revision = c5357acbaa68efb2902db7b9257d3e1d291030d3
+depth = 1
+method = cmake

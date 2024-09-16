@@ -1,0 +1,6 @@
+option('version_suffix', type: 'string', value: 'git',
+  description: 'Version suffix ("git" to get automatically from git describe command)',
+)
+option('launcher_config_path', type: 'string', value: '/etc/webcface/webcface-launcher.toml',
+  description: 'webcface-launcher config file path for systemd service',
+)
