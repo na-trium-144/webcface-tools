@@ -4,3 +4,6 @@ option('version_suffix', type: 'string', value: 'git',
 option('launcher_config_path', type: 'string', value: '/etc/webcface/webcface-launcher.toml',
   description: 'webcface-launcher config file path for systemd service',
 )
+option('webcface_subproject', type: 'boolean', value: false,
+  description: 'Build webcface as subproject',
+)
