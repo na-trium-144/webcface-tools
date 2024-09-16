@@ -86,7 +86,6 @@ jobs:
             meson setup build --buildtype=release --prefix=/opt/webcface -Dversion_suffix= -Dcmake_prefix_path=/opt/webcface
             meson compile -C build || meson compile -C build
             DESTDIR=/workspace/dist meson install -C build --skip-subprojects
-          # todo: sdl2
 
       - name: Create zip archive
         run: |

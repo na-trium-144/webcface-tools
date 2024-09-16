@@ -69,11 +69,26 @@ ftxui_component_dep = dependency('ftxui',
   modules: ['ftxui::component'],
   fallback: ['ftxui', 'component_dep'],
 )
+sdl2_dep = dependency('sdl2',
+  method: 'cmake',
+  modules: ['SDL2::SDL2'],
+  fallback: ['sdl2', 'sdl2_dep'],
+  default_options: [
+    'test=false',
+    'default_library=static',
+  ],
+)
+sdl2main_dep = dependency('sdl2',
+  method: 'cmake',
+  modules: ['SDL2::SDL2main'],
+  fallback: ['sdl2', 'sdl2main_dep'],
+)
 
 subdir('launcher')
 subdir('send')
 subdir('tui')
 subdir('ls')
+subdir('joystick')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({

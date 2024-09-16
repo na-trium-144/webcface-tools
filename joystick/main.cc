@@ -7,9 +7,10 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <SDL.h>
 #include "../common/common.h"
+#include "../common/logger_sink.h"
 #undef main
 
-int main(int argc, char **argv) {
+int SDL_main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace Joystick")};
 
     std::string wcli_host = "127.0.0.1", wcli_name = "webcface-joystick";
@@ -24,7 +25,10 @@ int main(int argc, char **argv) {
 
     webcface::Client wcli(wcli_name, wcli_host, wcli_port);
     wcli.waitConnection();
-    auto logger = wcli.logger();
+
+    auto logger = std::make_shared<spdlog::logger>("webcface-joystick");
+    logger->sinks() = {std::make_shared<spdlog::sinks::stderr_color_sink_mt>(),
+                       std::make_shared<LoggerSink>(wcli)};
 
     if (SDL_Init(SDL_INIT_JOYSTICK) < 0) {
         logger->critical("Error in SDL_Init: {}", SDL_GetError());
