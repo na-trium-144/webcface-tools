@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/na-trium-144/webcface.git
+revision = v2.2.1
+depth = 1
+[provide]
+dependency_names = webcface
