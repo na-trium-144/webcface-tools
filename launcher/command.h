@@ -88,7 +88,7 @@ struct Process : std::enable_shared_from_this<Process> {
 // ProcessにStart/Stopボタンの実装を追加したもの
 struct Command : std::enable_shared_from_this<Command> {
     webcface::Func start_f, stop_f;
-    std::optional<webcface::CallHandle> stop_h;
+    std::optional<webcface::CallHandle> stop_h, run_h;
     std::shared_ptr<Process> start_p;
     using StopOption =
         std::variant<std::nullopt_t, std::shared_ptr<Process>, int>;
@@ -103,7 +103,20 @@ struct Command : std::enable_shared_from_this<Command> {
     void initFunc(WebCFace::Client &wcli) {
         start_f =
             wcli.func(start_p->name + "/start").set([cmd = shared_from_this()] {
-                cmd->start_p->start();
+                if (cmd->start_p->is_running()) {
+                    throw std::runtime_error("already started");
+                } else {
+                    cmd->start_p->start();
+                }
+            });
+        wcli.func(start_p->name + "/run")
+            .set([cmd = shared_from_this()](webcface::CallHandle h) {
+                if (cmd->start_p->is_running()) {
+                    h.reject("already started");
+                } else {
+                    cmd->start_p->start();
+                    cmd->run_h = h;
+                }
             });
         stop_f = wcli.func(start_p->name + "/stop")
                      .set([cmd = shared_from_this()](webcface::CallHandle h) {
@@ -133,6 +146,10 @@ struct Command : std::enable_shared_from_this<Command> {
         if (stop_h.has_value() && !start_p->is_running()) {
             stop_h->respond();
             stop_h.reset();
+        }
+        if (run_h.has_value() && !start_p->is_running()) {
+            run_h->respond();
+            run_h.reset();
         }
     }
     void updateView(webcface::View &v) {
