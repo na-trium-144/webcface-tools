@@ -54,7 +54,7 @@ struct Process : std::enable_shared_from_this<Process> {
         };
         if (is_running()) {
             spdlog::warn("Command '{}' is already started.", this->name);
-            throw std::runtime_error("already started");
+            // throw std::runtime_error("already started");
         } else {
             spdlog::info("Starting command '{}'.", this->name);
             this->logs.clear();
@@ -78,7 +78,7 @@ struct Process : std::enable_shared_from_this<Process> {
 #endif
         } else {
             spdlog::warn("Command '{}' is already stopped.", this->name);
-            throw std::runtime_error("already stopped");
+            // throw std::runtime_error("already stopped");
         }
     }
 
@@ -88,14 +88,15 @@ struct Process : std::enable_shared_from_this<Process> {
 // ProcessにStart/Stopボタンの実装を追加したもの
 struct Command : std::enable_shared_from_this<Command> {
     webcface::Func start_f, stop_f;
+    std::optional<webcface::CallHandle> stop_h;
     std::shared_ptr<Process> start_p;
-    using StopOption = std::variant<std::nullopt_t, std::shared_ptr<Process>, int>;
+    using StopOption =
+        std::variant<std::nullopt_t, std::shared_ptr<Process>, int>;
     StopOption stop_p;
 
     Command(const Command &) = delete;
     Command &operator=(const Command &) = delete;
-    Command(const std::shared_ptr<Process> &start_p,
-            const StopOption &stop_p)
+    Command(const std::shared_ptr<Process> &start_p, const StopOption &stop_p)
         : start_p(start_p), stop_p(stop_p) {}
 
     // shared_from_thisを使うためコンストラクタと別
@@ -104,18 +105,81 @@ struct Command : std::enable_shared_from_this<Command> {
             wcli.func(start_p->name + "/start").set([cmd = shared_from_this()] {
                 cmd->start_p->start();
             });
-        stop_f =
-            wcli.func(start_p->name + "/stop").set([cmd = shared_from_this()] {
-                switch(cmd->stop_p.index()){
-                case 1:
-                    std::get<1>(cmd->stop_p)->start();
-                    break;
-                case 2:
-                    cmd->start_p->kill(std::get<2>(cmd->stop_p));
-                    break;
-                default:
-                    throw std::runtime_error("stop signal disabled");
+        stop_f = wcli.func(start_p->name + "/stop")
+                     .set([cmd = shared_from_this()](webcface::CallHandle h) {
+                         if (cmd->start_p->is_running()) {
+                             switch (cmd->stop_p.index()) {
+                             case 1:
+                                 std::get<1>(cmd->stop_p)->start();
+                                 break;
+                             case 2:
+                                 cmd->start_p->kill(std::get<2>(cmd->stop_p));
+                                 break;
+                             default:
+                                 // throw std::runtime_error("stop signal
+                                 // disabled");
+                                 h.reject("stop signal disabled");
+                             }
+                             cmd->stop_h = h;
+                         } else {
+                             h.reject("already stopped");
+                         }
+                     });
+    }
+
+    void update(webcface::Client &wcli) {
+        wcli.value(start_p->name).child("running") = start_p->is_running();
+        wcli.value(start_p->name).child("exit_status") = start_p->exit_status;
+        if (stop_h.has_value() && !start_p->is_running()) {
+            stop_h->respond();
+            stop_h.reset();
+        }
+    }
+    void updateView(webcface::View &v) {
+        v << start_p->name << " ";
+        auto start = webcface::button("start", start_f);
+        auto stop = webcface::button("stop", stop_f);
+        if (start_p->is_running()) {
+            // todo: button.disable がほしい
+            start.bgColor(WebCFace::ViewColor::gray);
+            stop.bgColor(WebCFace::ViewColor::orange);
+        } else {
+            start.bgColor(WebCFace::ViewColor::green);
+            stop.bgColor(WebCFace::ViewColor::gray);
+        }
+        v << start;
+        if (stop_p.index() != 0) {
+            v << stop;
+        }
+        if (!start_p->is_running() && start_p->exit_status != 0) {
+            v << webcface::text("(" + std::to_string(start_p->exit_status) +
+                                ") ")
+                     .textColor(WebCFace::ViewColor::red);
+        }
+        if (!start_p->is_running() &&
+            (start_p->exit_status != 0 ||
+             start_p->capture_stdout == CaptureMode::always)) {
+            std::string logs = start_p->logs;
+            if (!logs.empty()) {
+                v << webcface::button("Clear Logs",
+                                      [cmd = shared_from_this()] {
+                                          cmd->start_p->logs.clear();
+                                      })
+                         .bgColor(webcface::ViewColor::cyan)
+                  << std::endl;
+                for (std::size_t i;
+                     (i = logs.find_first_of("\n")) != std::string::npos;) {
+                    v << "　　" << logs.substr(0, i) << std::endl;
+                    logs = logs.substr(i + 1);
                 }
-            });
+                if (!logs.empty()) {
+                    v << "　　" << logs << std::endl;
+                }
+            } else {
+                v << std::endl;
+            }
+        } else {
+            v << std::endl;
+        }
     }
 };

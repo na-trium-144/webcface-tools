@@ -167,49 +167,8 @@ void launcherLoop(WebCFace::Client &wcli,
                   const std::vector<std::shared_ptr<Command>> &commands) {
     auto v = wcli.view("launcher");
     for (auto c : commands) {
-        v << c->start_p->name << " ";
-        auto start = webcface::button("start", c->start_f);
-        auto stop = webcface::button("stop", c->stop_f);
-        if (c->start_p->is_running()) {
-            // todo: button.disable がほしい
-            start.bgColor(WebCFace::ViewColor::gray);
-            stop.bgColor(WebCFace::ViewColor::orange);
-        } else {
-            start.bgColor(WebCFace::ViewColor::green);
-            stop.bgColor(WebCFace::ViewColor::gray);
-        }
-        v << start;
-        if (c->stop_p.index() != 0) {
-            v << stop;
-        }
-        if (!c->start_p->is_running() && c->start_p->exit_status != 0) {
-            v << webcface::text("(" + std::to_string(c->start_p->exit_status) +
-                                ") ")
-                     .textColor(WebCFace::ViewColor::red);
-        }
-        if (!c->start_p->is_running() &&
-            (c->start_p->exit_status != 0 ||
-             c->start_p->capture_stdout == CaptureMode::always)) {
-            std::string logs = c->start_p->logs;
-            if (!logs.empty()) {
-                v << webcface::button("Clear Logs",
-                                      [c] { c->start_p->logs.clear(); })
-                         .bgColor(webcface::ViewColor::cyan)
-                  << std::endl;
-                for (int i;
-                     (i = logs.find_first_of("\n")) != std::string::npos;) {
-                    v << "　　" << logs.substr(0, i) << std::endl;
-                    logs = logs.substr(i + 1);
-                }
-                if (!logs.empty()) {
-                    v << "　　" << logs << std::endl;
-                }
-            } else {
-                v << std::endl;
-            }
-        } else {
-            v << std::endl;
-        }
+        c->update(wcli);
+        c->updateView(v);
     }
     v.sync();
     wcli.sync();
