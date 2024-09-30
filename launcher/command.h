@@ -1,5 +1,9 @@
 #pragma once
-#include <webcface/webcface.h>
+#include <webcface/log.h>
+#include <webcface/func.h>
+#include <webcface/client.h>
+#include <webcface/value.h>
+#include <webcface/view.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <process.hpp>
@@ -23,7 +27,9 @@ struct Process : std::enable_shared_from_this<Process> {
     int exit_status = 0;
     std::shared_ptr<TinyProcessLib::Process> p;
     std::shared_ptr<spdlog::logger> logger;
+    std::optional<webcface::Log> send_logs = std::nullopt;
     std::string logs;
+    std::size_t logs_last_pos = 0;
 
     Process(const Process &) = delete;
     Process &operator=(const Process &) = delete;
@@ -39,6 +45,7 @@ struct Process : std::enable_shared_from_this<Process> {
     }
 
     void start() {
+        logs_last_pos = 0;
         auto read_log = [cmd = shared_from_this()](const char *bytes,
                                                    std::size_t n) {
 #ifdef _WIN32
@@ -50,7 +57,20 @@ struct Process : std::enable_shared_from_this<Process> {
 #else
             cmd->logs.append(bytes, n);
 #endif
-            cmd->logger->info(std::string(bytes, n));
+            // 改行で区切り、出力
+            auto logs_new_part =
+                std::string_view(cmd->logs).substr(cmd->logs_last_pos);
+            if (logs_new_part.find('\n') != std::string_view::npos) {
+                auto ln_pos = logs_new_part.find('\n');
+                auto logs_line = logs_new_part.substr(0, ln_pos);
+                cmd->logger->info("{}", logs_line);
+                if (cmd->send_logs.has_value()) {
+                    cmd->send_logs->append(webcface::level::info, logs_line);
+                }
+
+                cmd->logs_last_pos += ln_pos + 1;
+                logs_new_part = logs_new_part.substr(ln_pos + 1);
+            }
         };
         if (is_running()) {
             spdlog::warn("Command '{}' is already started.", this->name);
@@ -100,7 +120,7 @@ struct Command : std::enable_shared_from_this<Command> {
         : start_p(start_p), stop_p(stop_p) {}
 
     // shared_from_thisを使うためコンストラクタと別
-    void initFunc(WebCFace::Client &wcli) {
+    void initFunc(webcface::Client &wcli) {
         start_f =
             wcli.func(start_p->name + "/start").set([cmd = shared_from_this()] {
                 if (cmd->start_p->is_running()) {
@@ -158,11 +178,11 @@ struct Command : std::enable_shared_from_this<Command> {
         auto stop = webcface::button("stop", stop_f);
         if (start_p->is_running()) {
             // todo: button.disable がほしい
-            start.bgColor(WebCFace::ViewColor::gray);
-            stop.bgColor(WebCFace::ViewColor::orange);
+            start.bgColor(webcface::ViewColor::gray);
+            stop.bgColor(webcface::ViewColor::orange);
         } else {
-            start.bgColor(WebCFace::ViewColor::green);
-            stop.bgColor(WebCFace::ViewColor::gray);
+            start.bgColor(webcface::ViewColor::green);
+            stop.bgColor(webcface::ViewColor::gray);
         }
         v << start;
         if (stop_p.index() != 0) {
@@ -171,7 +191,7 @@ struct Command : std::enable_shared_from_this<Command> {
         if (!start_p->is_running() && start_p->exit_status != 0) {
             v << webcface::text("(" + std::to_string(start_p->exit_status) +
                                 ") ")
-                     .textColor(WebCFace::ViewColor::red);
+                     .textColor(webcface::ViewColor::red);
         }
         if (!start_p->is_running() &&
             (start_p->exit_status != 0 ||
