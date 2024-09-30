@@ -60,7 +60,7 @@ struct Process : std::enable_shared_from_this<Process> {
             // 改行で区切り、出力
             auto logs_new_part =
                 std::string_view(cmd->logs).substr(cmd->logs_last_pos);
-            if (logs_new_part.find('\n') != std::string_view::npos) {
+            while (logs_new_part.find('\n') != std::string_view::npos) {
                 auto ln_pos = logs_new_part.find('\n');
                 auto logs_line = logs_new_part.substr(0, ln_pos);
                 cmd->logger->info("{}", logs_line);
