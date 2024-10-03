@@ -45,7 +45,7 @@ if cxx.get_argument_syntax() == 'msvc'
   )
 endif
 
-webcface_dep = dependency('webcface', version: '>=2.0.0')
+webcface_dep = dependency('webcface', version: '>=2.4.0')
 spdlog_dep = dependency('spdlog')
 tiny_process_library_dep = dependency('tiny-process-library')
 tomlplusplus_dep = dependency('tomlplusplus',
