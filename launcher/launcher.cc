@@ -48,25 +48,31 @@ std::shared_ptr<Process> parseTomlProcess(toml::node &config_node,
     }
 
     auto t_cap = config_node[toml::path("stdout_capture")];
-    CaptureMode capture = CaptureMode::onerror;
+    bool capture = true;
     if (t_cap) {
-        if (!t_cap.is_string()) {
+        if (t_cap.is_string()) {
+            auto capture_stdout = **t_cap.as_string();
+            if (capture_stdout == "never") {
+                capture = false;
+            } else if (capture_stdout == "onerror") {
+                capture = true;
+            } else if (capture_stdout == "always") {
+                capture = true;
+            } else {
+                spdlog::error(
+                    "'stdout_capture' must be 'never', 'onerror' or 'always'.");
+                std::exit(1);
+            }
+            spdlog::warn(" stdout_capture {} is deprecated, use true or false.",
+                         capture_stdout);
+            spdlog::info(" stdout_capture: {}", capture);
+        } else if (t_cap.is_boolean()) {
+            capture = t_cap.as_boolean();
+            spdlog::info(" stdout_capture: {}", capture);
+        } else {
             spdlog::error("Error reading 'stdout_capture'");
             std::exit(1);
         }
-        auto capture_stdout = **t_cap.as_string();
-        if (capture_stdout == "never") {
-            capture = CaptureMode::never;
-        } else if (capture_stdout == "onerror") {
-            capture = CaptureMode::onerror;
-        } else if (capture_stdout == "always") {
-            capture = CaptureMode::always;
-        } else {
-            spdlog::error(
-                "'stdout_capture' must be 'never', 'onerror' or 'always'.");
-            std::exit(1);
-        }
-        spdlog::info(" stdout_capture: {}", capture_stdout);
     }
 
     auto t_utf8 = config_node[toml::path("stdout_utf8")];

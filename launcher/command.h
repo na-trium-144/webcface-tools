@@ -12,16 +12,11 @@
 #include <unordered_map>
 #include "../common/common.h"
 
-enum class CaptureMode {
-    never,
-    onerror,
-    always,
-};
 struct Process : std::enable_shared_from_this<Process> {
     std::string name;
     std::string exec;
     std::string workdir;
-    CaptureMode capture_stdout;
+    bool capture_stdout;
     bool stdout_is_utf8;
     std::unordered_map<std::string, std::string> env;
     int exit_status = 0;
@@ -34,7 +29,7 @@ struct Process : std::enable_shared_from_this<Process> {
     Process(const Process &) = delete;
     Process &operator=(const Process &) = delete;
     Process(const std::string &name, const std::string &exec,
-            const std::string &workdir, CaptureMode capture_stdout,
+            const std::string &workdir, bool capture_stdout,
             bool stdout_is_utf8,
             const std::unordered_map<std::string, std::string> &env)
         : std::enable_shared_from_this<Process>(), name(name), exec(exec),
@@ -58,18 +53,16 @@ struct Process : std::enable_shared_from_this<Process> {
             cmd->logs.append(bytes, n);
 #endif
             // 改行で区切り、出力
-            auto logs_new_part =
-                std::string_view(cmd->logs).substr(cmd->logs_last_pos);
-            while (logs_new_part.find('\n') != std::string_view::npos) {
-                auto ln_pos = logs_new_part.find('\n');
-                auto logs_line = logs_new_part.substr(0, ln_pos);
+            while (cmd->logs.find('\n') != std::string_view::npos) {
+                auto ln_pos = cmd->logs.find('\n');
+                auto logs_line = std::string_view(cmd->logs).substr(0, ln_pos);
                 cmd->logger->info("{}", logs_line);
                 if (cmd->send_logs.has_value()) {
                     cmd->send_logs->append(webcface::level::info, logs_line);
                 }
 
-                cmd->logs_last_pos += ln_pos + 1;
-                logs_new_part = logs_new_part.substr(ln_pos + 1);
+                cmd->logs = cmd->logs.substr(ln_pos + 1);
+                cmd->logs_last_pos = 0;
             }
         };
         if (is_running()) {
@@ -78,7 +71,7 @@ struct Process : std::enable_shared_from_this<Process> {
         } else {
             spdlog::info("Starting command '{}'.", this->name);
             this->logs.clear();
-            if (this->capture_stdout != CaptureMode::never) {
+            if (this->capture_stdout) {
                 p = std::make_shared<TinyProcessLib::Process>(
                     this->exec, this->workdir, this->env, read_log, read_log);
             } else {
@@ -193,30 +186,6 @@ struct Command : std::enable_shared_from_this<Command> {
                                 ") ")
                      .textColor(webcface::ViewColor::red);
         }
-        if (!start_p->is_running() &&
-            (start_p->exit_status != 0 ||
-             start_p->capture_stdout == CaptureMode::always)) {
-            std::string logs = start_p->logs;
-            if (!logs.empty()) {
-                v << webcface::button("Clear Logs",
-                                      [cmd = shared_from_this()] {
-                                          cmd->start_p->logs.clear();
-                                      })
-                         .bgColor(webcface::ViewColor::cyan)
-                  << std::endl;
-                for (std::size_t i;
-                     (i = logs.find_first_of("\n")) != std::string::npos;) {
-                    v << "　　" << logs.substr(0, i) << std::endl;
-                    logs = logs.substr(i + 1);
-                }
-                if (!logs.empty()) {
-                    v << "　　" << logs << std::endl;
-                }
-            } else {
-                v << std::endl;
-            }
-        } else {
-            v << std::endl;
-        }
+        v << std::endl;
     }
 };
