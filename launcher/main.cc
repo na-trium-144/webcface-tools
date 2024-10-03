@@ -1,4 +1,3 @@
-#include <webcface/webcface.h>
 #include <spdlog/spdlog.h>
 #include <toml++/toml.hpp>
 #include <CLI/CLI.hpp>
@@ -18,7 +17,7 @@ inline void initHandler() {}
 
 
 int main(int argc, char **argv) {
-    CLI::App app{TOOLS_VERSION_DISP("WebCFace Launcher")};
+    CLI::App app{TOOLS_VERSION_DISP("webcface Launcher")};
 
     std::string wcli_host = "", wcli_name = "";
     int wcli_port = 0;
@@ -71,7 +70,7 @@ int main(int argc, char **argv) {
     if (wcli_port == 0) {
         wcli_port = config["init"]["port"].value_or(WEBCFACE_DEFAULT_PORT);
     }
-    WebCFace::Client wcli(wcli_name, wcli_host, wcli_port);
+    webcface::Client wcli(wcli_name, wcli_host, wcli_port);
     std::vector<std::shared_ptr<Command>> commands = parseToml(wcli, config);
 
     initHandler();
