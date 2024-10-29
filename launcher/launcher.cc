@@ -162,7 +162,45 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
             }
         }
 
-        auto cmd = std::make_shared<Command>(start_p, stop_p);
+        Command::StopOption kill_p = std::nullopt;
+        auto t_kill = config_node[toml::path("kill")];
+        if (t_kill) {
+            if (t_kill.is_boolean()) {
+                if (**t_kill.as_boolean()) {
+                    kill_p.emplace<2>(9);
+#ifdef _WIN32
+                    spdlog::info(" kill: TerminateProcess");
+#else
+                    spdlog::info(" kill: signal {}", 9);
+#endif
+                } else {
+                    spdlog::info(" kill: disabled");
+                    kill_p.emplace<0>(std::nullopt);
+                }
+            } else if (t_kill.is_number()) {
+                kill_p.emplace<2>(**t_kill.as_integer());
+#ifdef _WIN32
+                spdlog::info(" kill: TerminateProcess");
+#else
+                spdlog::info(" kill: signal {}", **t_kill.as_integer());
+#endif
+            } else if (t_kill.is_table()) {
+                auto tb_kill = *t_kill.as_table();
+                auto t_exec = tb_kill[toml::path("exec")];
+                if (t_exec.is_string()) {
+                    kill_p.emplace<1>(
+                        parseTomlProcess(tb_kill, start_p->name + "/kill"));
+                } else {
+                    spdlog::error("Error reading 'kill'");
+                    std::exit(1);
+                }
+            } else {
+                spdlog::error("Error reading 'kill'");
+                std::exit(1);
+            }
+        }
+
+        auto cmd = std::make_shared<Command>(start_p, stop_p, kill_p);
         cmd->initFunc(wcli);
         commands.push_back(cmd);
     }
