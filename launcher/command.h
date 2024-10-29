@@ -100,17 +100,18 @@ struct Process : std::enable_shared_from_this<Process> {
 
 // ProcessにStart/Stopボタンの実装を追加したもの
 struct Command : std::enable_shared_from_this<Command> {
-    webcface::Func start_f, stop_f;
-    std::optional<webcface::CallHandle> stop_h, run_h;
+    webcface::Func start_f, stop_f, kill_f;
+    std::vector<webcface::CallHandle> stop_h;
     std::shared_ptr<Process> start_p;
     using StopOption =
         std::variant<std::nullopt_t, std::shared_ptr<Process>, int>;
-    StopOption stop_p;
+    StopOption stop_p, kill_p;
 
     Command(const Command &) = delete;
     Command &operator=(const Command &) = delete;
-    Command(const std::shared_ptr<Process> &start_p, const StopOption &stop_p)
-        : start_p(start_p), stop_p(stop_p) {}
+    Command(const std::shared_ptr<Process> &start_p, const StopOption &stop_p,
+            const StopOption &kill_p)
+        : start_p(start_p), stop_p(stop_p), kill_p(kill_p) {}
 
     // shared_from_thisを使うためコンストラクタと別
     void initFunc(webcface::Client &wcli) {
@@ -128,7 +129,7 @@ struct Command : std::enable_shared_from_this<Command> {
                     h.reject("already started");
                 } else {
                     cmd->start_p->start();
-                    cmd->run_h = h;
+                    cmd->stop_h.push_back(h);
                 }
             });
         stop_f = wcli.func(start_p->name + "/stop")
@@ -146,7 +147,27 @@ struct Command : std::enable_shared_from_this<Command> {
                                  // disabled");
                                  h.reject("stop signal disabled");
                              }
-                             cmd->stop_h = h;
+                             cmd->stop_h.push_back(h);
+                         } else {
+                             h.reject("already stopped");
+                         }
+                     });
+        kill_f = wcli.func(start_p->name + "/kill")
+                     .set([cmd = shared_from_this()](webcface::CallHandle h) {
+                         if (cmd->start_p->is_running()) {
+                             switch (cmd->kill_p.index()) {
+                             case 1:
+                                 std::get<1>(cmd->kill_p)->start();
+                                 break;
+                             case 2:
+                                 cmd->start_p->kill(std::get<2>(cmd->kill_p));
+                                 break;
+                             default:
+                                 // throw std::runtime_error("stop signal
+                                 // disabled");
+                                 h.reject("kill signal disabled");
+                             }
+                             cmd->stop_h.push_back(h);
                          } else {
                              h.reject("already stopped");
                          }
@@ -156,30 +177,34 @@ struct Command : std::enable_shared_from_this<Command> {
     void update(webcface::Client &wcli) {
         wcli.value(start_p->name).child("running") = start_p->is_running();
         wcli.value(start_p->name).child("exit_status") = start_p->exit_status;
-        if (stop_h.has_value() && !start_p->is_running()) {
-            stop_h->respond();
-            stop_h.reset();
-        }
-        if (run_h.has_value() && !start_p->is_running()) {
-            run_h->respond();
-            run_h.reset();
+        if (!start_p->is_running()) {
+            for (const auto &h : stop_h) {
+                h.respond();
+            }
+            stop_h.clear();
         }
     }
     void updateView(webcface::View &v) {
         v << start_p->name << " ";
         auto start = webcface::button("start", start_f);
         auto stop = webcface::button("stop", stop_f);
+        auto kill = webcface::button("kill", kill_f);
         if (start_p->is_running()) {
             // todo: button.disable がほしい
             start.bgColor(webcface::ViewColor::gray);
             stop.bgColor(webcface::ViewColor::orange);
+            kill.bgColor(webcface::ViewColor::red);
         } else {
             start.bgColor(webcface::ViewColor::green);
             stop.bgColor(webcface::ViewColor::gray);
+            kill.bgColor(webcface::ViewColor::gray);
         }
         v << start;
         if (stop_p.index() != 0) {
             v << stop;
+        }
+        if (kill_p.index() != 0) {
+            v << kill;
         }
         if (!start_p->is_running() && start_p->exit_status != 0) {
             v << webcface::text("(" + std::to_string(start_p->exit_status) +
