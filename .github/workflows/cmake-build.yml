@@ -144,12 +144,9 @@ jobs:
         rm libwebcface-macos-universal.zip
 
     - uses: actions/checkout@v4
-    - name: Install dependencies
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-      run: |
-        brew update --preinstall
-        brew install meson
+    - uses: ilammy/setup-nasm@v1
+    - name: Install Meson
+      run: pip install meson
 
     - name: Setup Meson
       env:
