@@ -101,7 +101,7 @@ struct Process : std::enable_shared_from_this<Process> {
 // ProcessにStart/Stopボタンの実装を追加したもの
 struct Command : std::enable_shared_from_this<Command> {
     webcface::Func start_f, stop_f, kill_f;
-    std::optional<webcface::CallHandle> stop_h, run_h;
+    std::vector<webcface::CallHandle> stop_h;
     std::shared_ptr<Process> start_p;
     using StopOption =
         std::variant<std::nullopt_t, std::shared_ptr<Process>, int>;
@@ -129,7 +129,7 @@ struct Command : std::enable_shared_from_this<Command> {
                     h.reject("already started");
                 } else {
                     cmd->start_p->start();
-                    cmd->run_h = h;
+                    cmd->stop_h.push_back(h);
                 }
             });
         stop_f = wcli.func(start_p->name + "/stop")
@@ -147,7 +147,7 @@ struct Command : std::enable_shared_from_this<Command> {
                                  // disabled");
                                  h.reject("stop signal disabled");
                              }
-                             cmd->stop_h = h;
+                             cmd->stop_h.push_back(h);
                          } else {
                              h.reject("already stopped");
                          }
@@ -167,7 +167,7 @@ struct Command : std::enable_shared_from_this<Command> {
                                  // disabled");
                                  h.reject("kill signal disabled");
                              }
-                             cmd->stop_h = h;
+                             cmd->stop_h.push_back(h);
                          } else {
                              h.reject("already stopped");
                          }
@@ -177,13 +177,11 @@ struct Command : std::enable_shared_from_this<Command> {
     void update(webcface::Client &wcli) {
         wcli.value(start_p->name).child("running") = start_p->is_running();
         wcli.value(start_p->name).child("exit_status") = start_p->exit_status;
-        if (stop_h.has_value() && !start_p->is_running()) {
-            stop_h->respond();
-            stop_h.reset();
-        }
-        if (run_h.has_value() && !start_p->is_running()) {
-            run_h->respond();
-            run_h.reset();
+        if (!start_p->is_running()) {
+            for (const auto &h : stop_h) {
+                h.respond();
+            }
+            stop_h.clear();
         }
     }
     void updateView(webcface::View &v) {
