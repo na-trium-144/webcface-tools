@@ -69,11 +69,13 @@ ftxui_component_dep = dependency('ftxui',
   modules: ['ftxui::component'],
   fallback: ['ftxui', 'component_dep'],
 )
+pugixml_dep = dependency('pugixml')
 
 subdir('launcher')
 subdir('send')
 subdir('tui')
 subdir('ls')
+subdir('mjcf')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({
