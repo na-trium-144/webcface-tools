@@ -1,7 +1,9 @@
 tools_mjcf = executable('webcface-mjcf',
   sources: [
     'main.cc',
+    'common.cc',
     'body.cc',
+    'geom.cc',
   ],
   dependencies: [
     webcface_dep,

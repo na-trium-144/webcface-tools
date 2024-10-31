@@ -3,7 +3,7 @@
 #include <pugixml.hpp>
 #include <spdlog/spdlog.h>
 #include "../common/common.h"
-#include "./body.h"
+#include "./main.h"
 
 int main(int argc, char **argv) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace MJCF")};
@@ -23,16 +23,16 @@ int main(int argc, char **argv) {
 
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(filename.c_str());
-    if(!result){
-        spdlog::error("XML Parse Error: {} (at offset {})", result.description(), result.offset);
+    if (!result) {
+        spdlog::error("XML Parse Error: {} (at offset {})",
+                      result.description(), result.offset);
         return 1;
     }
     auto mujoco = doc.child("mujoco");
-    if(!mujoco){
+    if (!mujoco) {
         spdlog::error("No <mujoco> tag found in the xml file");
         return 1;
     }
     auto model_name = mujoco.attribute("model");
     parseBody(mujoco.child("worldbody"));
-
 }
