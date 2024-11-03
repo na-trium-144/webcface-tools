@@ -35,5 +35,5 @@ webcface::Transform parseTransform(const pugi::xml_node &node) {
     } else if (node.attribute("zaxis")) {
         spdlog::error("Frame orientation by zaxis is not implemented");
     }
-    return webcface::translate(pos);
+    return webcface::translation(pos);
 }

@@ -3,6 +3,7 @@
 #include <pugixml.hpp>
 #include <spdlog/spdlog.h>
 #include "../common/common.h"
+#include "webcface/robot_model.h"
 #include "./main.h"
 
 int main(int argc, char **argv) {
@@ -33,6 +34,13 @@ int main(int argc, char **argv) {
         spdlog::error("No <mujoco> tag found in the xml file");
         return 1;
     }
-    auto model_name = mujoco.attribute("model");
-    parseBody(mujoco.child("worldbody"));
+    auto model_name = mujoco.attribute("model").as_string("model");
+
+    std::vector<webcface::RobotLink> links;
+    parseBody(links, mujoco.child("worldbody"), true, "", {});
+
+    webcface::Client wcli(wcli_name, wcli_host, wcli_port);
+    wcli.robotModel(model_name) = links;
+    wcli.waitConnection();
+    wcli.sync();
 }
