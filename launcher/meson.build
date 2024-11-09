@@ -2,6 +2,7 @@ tools_launcher = executable('webcface-launcher',
   sources: [
     'main.cc',
     'launcher.cc',
+    'command.cc',
   ],
   dependencies: [
     webcface_dep,
