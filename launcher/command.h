@@ -21,10 +21,10 @@ struct Process : std::enable_shared_from_this<Process> {
     std::unordered_map<std::string, std::string> env;
     int exit_status = 0;
     std::shared_ptr<TinyProcessLib::Process> p;
+    bool running_prev = false;
     std::shared_ptr<spdlog::logger> logger;
     std::optional<webcface::Log> send_logs = std::nullopt;
-    std::string logs;
-    std::size_t logs_last_pos = 0;
+    std::string logs_out, logs_err;
 
     Process(const Process &) = delete;
     Process &operator=(const Process &) = delete;
@@ -33,10 +33,11 @@ struct Process : std::enable_shared_from_this<Process> {
             bool stdout_is_utf8,
             const std::unordered_map<std::string, std::string> &env);
 
+    void readLog(const char *bytes, std::size_t n, bool is_stderr);
     void start();
     void kill([[maybe_unused]] int sig);
 
-    bool is_running() { return p && !p->try_get_exit_status(exit_status); }
+    bool is_running();
 };
 
 // ProcessにStart/Stopボタンの実装を追加したもの

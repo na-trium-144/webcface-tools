@@ -11,41 +11,59 @@ Process::Process(const std::string &name, const std::string &exec,
     logger->set_pattern("[%n] %v");
 }
 
-void Process::start() {
-    logs_last_pos = 0;
-    auto read_log = [cmd = shared_from_this()](const char *bytes,
-                                               std::size_t n) {
-#ifdef _WIN32
-        if (!cmd->stdout_is_utf8) {
-            cmd->logs += acpToUTF8(bytes, static_cast<int>(n));
-        } else {
-            cmd->logs.append(bytes, n);
-        }
-#else
-        cmd->logs.append(bytes, n);
-#endif
-        // 改行で区切り、出力
-        while (cmd->logs.find('\n') != std::string_view::npos) {
-            auto ln_pos = cmd->logs.find('\n');
-            auto logs_line = std::string_view(cmd->logs).substr(0, ln_pos);
-            cmd->logger->info("{}", logs_line);
-            if (cmd->send_logs.has_value()) {
-                cmd->send_logs->append(webcface::level::info, logs_line);
-            }
+void Process::readLog(const char *bytes, std::size_t n, bool is_stderr) {
+    std::string &logs = is_stderr ? logs_err : logs_out;
 
-            cmd->logs = cmd->logs.substr(ln_pos + 1);
-            cmd->logs_last_pos = 0;
+#ifdef _WIN32
+    if (!this->stdout_is_utf8) {
+        logs += acpToUTF8(bytes, static_cast<int>(n));
+    } else {
+        logs.append(bytes, n);
+    }
+#else
+    logs.append(bytes, n);
+#endif
+    // 改行で区切り、出力
+    while (logs.find('\n') != std::string_view::npos) {
+        auto ln_pos = logs.find('\n');
+        auto logs_line = std::string_view(logs).substr(0, ln_pos);
+        if (is_stderr) {
+            this->logger->warn("{}", logs_line);
+        } else {
+            this->logger->info("{}", logs_line);
         }
+        if (this->send_logs.has_value()) {
+            this->send_logs->append(is_stderr ? webcface::level::warn
+                                              : webcface::level::info,
+                                    logs_line);
+        }
+
+        logs = logs.substr(ln_pos + 1);
+    }
+}
+void Process::start() {
+    auto read_out = [cmd = shared_from_this()](const char *bytes,
+                                               std::size_t n) {
+        cmd->readLog(bytes, n, false);
+    };
+    auto read_err = [cmd = shared_from_this()](const char *bytes,
+                                               std::size_t n) {
+        cmd->readLog(bytes, n, true);
     };
     if (is_running()) {
         spdlog::warn("Command '{}' is already started.", this->name);
         // throw std::runtime_error("already started");
     } else {
         spdlog::info("Starting command '{}'.", this->name);
-        this->logs.clear();
+        this->logs_out.clear();
+        this->logs_err.clear();
+        if (this->send_logs.has_value()) {
+            this->send_logs->append(webcface::level::debug,
+                                    "<Starting command '" + this->name + "'>");
+        }
         if (this->capture_stdout) {
             p = std::make_shared<TinyProcessLib::Process>(
-                this->exec, this->workdir, this->env, read_log, read_log);
+                this->exec, this->workdir, this->env, read_out, read_err);
         } else {
             p = std::make_shared<TinyProcessLib::Process>(
                 this->exec, this->workdir, this->env);
@@ -65,6 +83,27 @@ void Process::kill([[maybe_unused]] int sig) {
         spdlog::warn("Command '{}' is already stopped.", this->name);
         // throw std::runtime_error("already stopped");
     }
+}
+bool Process::is_running() {
+    bool running = p && !p->try_get_exit_status(exit_status);
+    if (running_prev == true && running == false) {
+        if (this->send_logs.has_value()) {
+            if (!this->logs_out.empty()) {
+                this->send_logs->append(webcface::level::info, this->logs_out);
+                this->logs_out.clear();
+            }
+            if (!this->logs_err.empty()) {
+                this->send_logs->append(webcface::level::warn, this->logs_err);
+                this->logs_err.clear();
+            }
+            this->send_logs->append(webcface::level::debug,
+                                    "<Command '" + this->name +
+                                        "' has stopped with exit code " +
+                                        std::to_string(exit_status) + ">");
+        }
+    }
+    running_prev = running;
+    return running;
 }
 
 void Command::initFunc(webcface::Client &wcli) {
