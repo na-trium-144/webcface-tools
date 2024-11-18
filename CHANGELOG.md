@@ -1,3 +1,7 @@
+## [2.1.2] - 2024-11-18
+### Changed
+* Launcherでstderrのログをwarn表示に変更、コマンドの開始時と終了時にdebugログを追加 (#54)
+
 ## [2.1.1] - 2024-10-30
 ### Added
 * Launcherにkill機能(killボタン、`コマンド名/kill` 関数)追加
