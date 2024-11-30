@@ -1,3 +1,7 @@
+## [2.1.3] - 2024-11-30
+### Fixed
+* webcface-launcher.service から呼び出すlauncherコマンドを絶対パスに変更 (#55)
+
 ## [2.1.2] - 2024-11-18
 ### Changed
 * Launcherでstderrのログをwarn表示に変更、コマンドの開始時と終了時にdebugログを追加 (#54)

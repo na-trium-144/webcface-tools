@@ -1,5 +1,5 @@
 project('webcface-tools', 'cpp',
-  version: '2.1.2',
+  version: '2.1.3',
   license: 'MIT',
   meson_version: '>=1.1',
   default_options: [
@@ -77,6 +77,8 @@ subdir('ls')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({
+    'prefix': get_option('prefix'),
+    'bindir': get_option('bindir'),
     'WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH': get_option('launcher_config_path'),
   })
   configure_file(
