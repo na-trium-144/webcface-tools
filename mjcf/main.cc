@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
     }
     auto model_name = mujoco.attribute("model").as_string("model");
 
-    std::vector<webcface::RobotLink> links;
-    parseBody(links, mujoco.child("worldbody"), true, "", {});
+    std::vector<std::vector<webcface::RobotLink>> models;
+    parseBody(models, links, mujoco.child("worldbody"), true, "", {});
 
     webcface::Client wcli(wcli_name, wcli_host, wcli_port);
     wcli.robotModel(model_name) = links;

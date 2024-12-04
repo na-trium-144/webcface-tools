@@ -6,7 +6,8 @@
 #include <optional>
 #include <string_view>
 
-void parseBody(std::vector<webcface::RobotLink> &w_links,
+void parseBody(std::vector<std::vector<webcface::RobotLink>> &w_models,
+                std::vector<webcface::RobotLink> *w_links,
                const pugi::xml_node &body, bool is_world,
                std::string_view parent_joint_link_name,
                const webcface::Transform &parent_joint_tf);

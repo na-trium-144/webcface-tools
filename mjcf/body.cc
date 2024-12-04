@@ -26,7 +26,8 @@
 */
 // clang-format on
 
-void parseBody(std::vector<webcface::RobotLink> &w_links,
+void parseBody(std::vector<std::vector<webcface::RobotLink>> &w_models,
+               std::vector<webcface::RobotLink> *w_links,
                const pugi::xml_node &body, bool is_world,
                std::string_view parent_joint_link_name,
                const webcface::Transform &parent_joint_tf) {
@@ -35,15 +36,17 @@ void parseBody(std::vector<webcface::RobotLink> &w_links,
     // todo: childclass, mocap
     auto body_name = is_world ? "world" : body.attribute("name").as_string();
     webcface::Transform body_tf = parseTransform(body);
-    if (is_world) {
-        w_links.push_back(webcface::RobotLink(
+    std::optional<webcface::RobotLink> body_link_deferred;
+    if (!is_world) {
+        // w_links.push_back();
+        body_link_deferred = webcface::RobotLink(
             body_name,
             webcface::fixedJoint(parent_joint_link_name,
                                  parent_joint_tf.inversed() * body_tf),
-            {}));
+            {});
     } else {
-        w_links.push_back(webcface::RobotLink(
-            body_name, webcface::fixedAbsolute(body_tf), {}));
+        body_link_deferred = webcface::RobotLink(
+            body_name, webcface::fixedAbsolute(body_tf), {});
     }
     webcface::Transform last_joint_tf;
 
@@ -73,31 +76,50 @@ void parseBody(std::vector<webcface::RobotLink> &w_links,
 
         pugi::xml_attribute type = joint.attribute("type");
         if (type.as_string() == "free"sv) {
-            // todo
+            spdlog::info(
+                "Body with free joint will be treated as separate Model.");
+            w_models.emplace_back();
+            w_links = &w_models.back();
+            w_links->push_back(webcface::RobotLink(
+                body_name, webcface::fixedAbsolute(body_tf), {}));
+            body_link_deferred = std::nullopt;
         } else if (type.as_string() == "slide"sv) {
-            w_links.push_back(webcface::RobotLink(
+            if (body_link_deferred) {
+                w_links->push_back(*body_link_deferred);
+                body_link_deferred = std::nullopt;
+            }
+            w_links->push_back(webcface::RobotLink(
                 j_name,
-                webcface::prismaticJoint(j_name, w_links.back().name(), j_tf),
+                webcface::prismaticJoint(j_name, w_links->back().name(), j_tf),
                 {}));
         } else if (type.as_string() == "hinge"sv) {
-            w_links.push_back(webcface::RobotLink(
+            if (body_link_deferred) {
+                w_links->push_back(*body_link_deferred);
+                body_link_deferred = std::nullopt;
+            }
+            w_links->push_back(webcface::RobotLink(
                 j_name,
-                webcface::rotationalJoint(j_name, w_links.back().name(), j_tf),
+                webcface::rotationalJoint(j_name, w_links->back().name(), j_tf),
                 {}));
         } else if (type.as_string() == "ball"sv) {
             spdlog::error("Ball joint is not implemented");
         }
     }
-    std::string_view last_joint_name = w_links.back().name();
+    if (body_link_deferred) {
+        w_links->push_back(*body_link_deferred);
+        body_link_deferred = std::nullopt;
+    }
+    std::string_view last_joint_name = w_links->back().name();
     for (pugi::xml_node geom = body.child("geom"); geom;
          geom = geom.next_sibling("geom")) {
         auto geom_link = parseGeom(geom, last_joint_name, last_joint_tf);
         if (geom_link) {
-            w_links.push_back(std::move(*geom_link));
+            w_links->push_back(std::move(*geom_link));
         }
     }
     for (pugi::xml_node child_body = body.child("body"); child_body;
          child_body = child_body.next_sibling("body")) {
-        parseBody(w_links, child_body, false, last_joint_name, last_joint_tf);
+        parseBody(w_models, w_links, child_body, false, last_joint_name,
+                  last_joint_tf);
     }
 }
