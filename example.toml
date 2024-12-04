@@ -1,0 +1,4 @@
+[[command]]
+name="hello"
+exec="for i in `seq 10`; do echo hello; done"
+
