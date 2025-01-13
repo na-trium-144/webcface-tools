@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
                 spdlog::error("Failed to open {} for writing: {}", filename,
                               std::strerror(errno));
             }
+            wcli.sync();
         });
     v.sync();
     wcli.loopSync();
