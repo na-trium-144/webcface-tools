@@ -80,7 +80,7 @@ jobs:
           # Produce a binary artifact and place it in the mounted volume
           run: |
             cd /workspace
-            curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.5.0/libwebcface-linux-${{matrix.arch}}.zip
+            curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.6.0/libwebcface-linux-${{matrix.arch}}.zip
             unzip libwebcface-*.zip -d /opt/webcface
             rm libwebcface-*.zip
             meson setup build --buildtype=release --prefix=/opt/webcface -Dversion_suffix= -Dcmake_prefix_path=/opt/webcface
@@ -139,7 +139,7 @@ jobs:
     steps:
     - name: Install webcface
       run: |
-        curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.5.0/libwebcface-macos-universal.zip
+        curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.6.0/libwebcface-macos-universal.zip
         sudo unzip libwebcface-macos-universal.zip -d /opt/webcface
         rm libwebcface-macos-universal.zip
 
@@ -220,7 +220,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: download latest webcface
       run: |
-        Invoke-WebRequest https://github.com/na-trium-144/webcface/releases/download/v2.5.0/libwebcface-windows-${{matrix.arch}}.zip -OutFile webcface.zip
+        Invoke-WebRequest https://github.com/na-trium-144/webcface/releases/download/v2.6.0/libwebcface-windows-${{matrix.arch}}.zip -OutFile webcface.zip
         Expand-Archive -Path webcface.zip -DestinationPath webcface
         Remove-Item webcface.zip
     - name: Add webcface to path

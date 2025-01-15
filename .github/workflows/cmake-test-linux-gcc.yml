@@ -22,7 +22,7 @@ jobs:
 
     - name: install latest webcface
       run: |
-        curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.5.0/webcface_2.5.0_amd64.deb
+        curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.6.0/webcface_2.6.0_amd64.deb
         sudo apt-get install -y ./*.deb
         rm ./*.deb
 
