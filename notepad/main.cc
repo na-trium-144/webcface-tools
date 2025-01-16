@@ -20,6 +20,9 @@ int main(int argc, char **argv) {
                    "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
     app.add_option("-m,--member", wcli_name, "Client member name");
 
+    std::array<int, 2> size = {30, 10};
+    app.add_option("-s,--size", size, "Width and height of image");
+
     std::string filename;
     app.add_option("filename", filename, "File path");
 
@@ -32,30 +35,47 @@ int main(int argc, char **argv) {
     CLI11_PARSE(app, argc, argv);
 
     std::string init_content;
+    std::string status_msg;
     {
         std::ifstream fs(filename);
         if (fs) {
-            init_content = std::string(std::istream_iterator<char>(fs), {});
+            init_content = std::string(std::istreambuf_iterator<char>(fs), {});
         } else {
             spdlog::error("Failed to open {} for reading: {}", filename,
-                          std::strerror(errno));
+                          status_msg = std::strerror(errno));
         }
     }
 
     webcface::Client wcli(wcli_name, wcli_host, wcli_port);
-    auto v = wcli.view("notepad");
-    v << webcface::textInput().init(init_content).width(20).height(10).onChange(
-        [&](const std::string &content) {
-            std::ofstream fs(filename);
-            if (fs) {
-                fs << content;
-                spdlog::info("{} bytes written", content.size());
-            } else {
-                spdlog::error("Failed to open {} for writing: {}", filename,
-                              std::strerror(errno));
-            }
-            wcli.sync();
-        });
-    v.sync();
+    std::function<void()> update_view = [&] {
+        auto v = wcli.view("notepad");
+        v << webcface::textInput()
+                 .init(init_content)
+                 .width(size[0])
+                 .height(size[1])
+                 .onChange([&](const std::string &content) {
+                     std::ofstream fs(filename);
+                     if (fs) {
+                         fs << content;
+                         spdlog::info("{}", status_msg =
+                                                fmt::format("{} bytes written",
+                                                            content.size()));
+                     } else {
+                         spdlog::error("Failed to open {} for writing: {}",
+                                       filename,
+                                       status_msg = std::strerror(errno));
+                     }
+                     update_view();
+                     wcli.sync();
+                 })
+          << std::endl;
+        v << filename;
+        if (!status_msg.empty()) {
+            v << ": " << status_msg;
+        }
+
+        v.sync();
+    };
+    update_view();
     wcli.loopSync();
 }
