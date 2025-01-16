@@ -74,6 +74,7 @@ subdir('launcher')
 subdir('send')
 subdir('tui')
 subdir('ls')
+subdir('notepad')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({
