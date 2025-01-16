@@ -1,3 +1,8 @@
+## [2.2.0] - 2025-01-17
+### Added
+* webcface-notepad (#56)
+* webcface-tui でView要素のwidth,heightプロパティに対応 (#58)
+
 ## [2.1.3] - 2024-11-30
 ### Fixed
 * webcface-launcher.service から呼び出すlauncherコマンドを絶対パスに変更 (#55)
