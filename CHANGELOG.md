@@ -1,3 +1,31 @@
+## [2.2.0] - 2025-01-17
+### Added
+* webcface-notepad (#56)
+* webcface-tui でView要素のwidth,heightプロパティに対応 (#58)
+
+## [2.1.3] - 2024-11-30
+### Fixed
+* webcface-launcher.service から呼び出すlauncherコマンドを絶対パスに変更 (#55)
+
+## [2.1.2] - 2024-11-18
+### Changed
+* Launcherでstderrのログをwarn表示に変更、コマンドの開始時と終了時にdebugログを追加 (#54)
+
+## [2.1.1] - 2024-10-30
+### Added
+* Launcherにkill機能(killボタン、`コマンド名/kill` 関数)追加
+### Fixed
+* コマンド名/stop などの関数を複数回実行した場合、そのすべての呼び出しがコマンドの終了時に正常終了するようにした
+
+## [2.1.0] - 2024-10-03
+### Changed
+* Launcher機能追加 (#50)
+	* `コマンド名.exit_status`, `コマンド名.running` というValueデータでコマンドの状態を取得できるようになった
+	* `コマンド名/stop` 関数はコマンドが停止するまで待機するようになった
+	* `コマンド名/run` 関数追加 (startをして、コマンドが停止するまで待機する)
+	* webcface-sendを使わなくても実行したコマンドのログをLogデータとして送信するようにした
+		* tomlのstdout_captureオプションを今までのような文字列ではなくtrueまたはfalseで指定するようにした
+
 ## [2.0.1] - 2024-08-27
 ### Fixed
 * cli11のパスを通していてもnot foundになっていたのを修正 (#48)

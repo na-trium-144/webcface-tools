@@ -1,5 +1,5 @@
 project('webcface-tools', 'cpp',
-  version: '2.0.1',
+  version: '2.2.0',
   license: 'MIT',
   meson_version: '>=1.1',
   default_options: [
@@ -45,7 +45,7 @@ if cxx.get_argument_syntax() == 'msvc'
   )
 endif
 
-webcface_dep = dependency('webcface', version: '>=2.0.0')
+webcface_dep = dependency('webcface', version: '>=2.7.0')
 spdlog_dep = dependency('spdlog')
 tiny_process_library_dep = dependency('tiny-process-library')
 tomlplusplus_dep = dependency('tomlplusplus',
@@ -88,10 +88,13 @@ subdir('launcher')
 subdir('send')
 subdir('tui')
 subdir('ls')
+subdir('notepad')
 subdir('joystick')
 
 if host_machine.system() == 'linux'
   conf_data = configuration_data({
+    'prefix': get_option('prefix'),
+    'bindir': get_option('bindir'),
     'WEBCFACE_TOOLS_LAUNCHER_CONFIG_PATH': get_option('launcher_config_path'),
   })
   configure_file(

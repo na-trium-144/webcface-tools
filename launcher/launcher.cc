@@ -1,4 +1,3 @@
-#include <webcface/webcface.h>
 #include <toml++/toml.hpp>
 #include <string>
 #include <vector>
@@ -49,25 +48,31 @@ std::shared_ptr<Process> parseTomlProcess(toml::node &config_node,
     }
 
     auto t_cap = config_node[toml::path("stdout_capture")];
-    CaptureMode capture = CaptureMode::onerror;
+    bool capture = true;
     if (t_cap) {
-        if (!t_cap.is_string()) {
+        if (t_cap.is_string()) {
+            auto capture_stdout = **t_cap.as_string();
+            if (capture_stdout == "never") {
+                capture = false;
+            } else if (capture_stdout == "onerror") {
+                capture = true;
+            } else if (capture_stdout == "always") {
+                capture = true;
+            } else {
+                spdlog::error(
+                    "'stdout_capture' must be 'never', 'onerror' or 'always'.");
+                std::exit(1);
+            }
+            spdlog::warn(" stdout_capture {} is deprecated, use true or false.",
+                         capture_stdout);
+            spdlog::info(" stdout_capture: {}", capture);
+        } else if (t_cap.is_boolean()) {
+            capture = t_cap.as_boolean();
+            spdlog::info(" stdout_capture: {}", capture);
+        } else {
             spdlog::error("Error reading 'stdout_capture'");
             std::exit(1);
         }
-        auto capture_stdout = **t_cap.as_string();
-        if (capture_stdout == "never") {
-            capture = CaptureMode::never;
-        } else if (capture_stdout == "onerror") {
-            capture = CaptureMode::onerror;
-        } else if (capture_stdout == "always") {
-            capture = CaptureMode::always;
-        } else {
-            spdlog::error(
-                "'stdout_capture' must be 'never', 'onerror' or 'always'.");
-            std::exit(1);
-        }
-        spdlog::info(" stdout_capture: {}", capture_stdout);
     }
 
     auto t_utf8 = config_node[toml::path("stdout_utf8")];
@@ -117,6 +122,7 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
     auto config_commands = config["command"].as_array();
     for (auto &&config_node : *config_commands) {
         auto start_p = parseTomlProcess(config_node, "");
+        start_p->send_logs = wcli.log(start_p->name);
 
         Command::StopOption stop_p = 2;
         auto t_stop = config_node[toml::path("stop")];
@@ -156,60 +162,57 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
             }
         }
 
-        auto cmd = std::make_shared<Command>(start_p, stop_p);
+        Command::StopOption kill_p = std::nullopt;
+        auto t_kill = config_node[toml::path("kill")];
+        if (t_kill) {
+            if (t_kill.is_boolean()) {
+                if (**t_kill.as_boolean()) {
+                    kill_p.emplace<2>(9);
+#ifdef _WIN32
+                    spdlog::info(" kill: TerminateProcess");
+#else
+                    spdlog::info(" kill: signal {}", 9);
+#endif
+                } else {
+                    spdlog::info(" kill: disabled");
+                    kill_p.emplace<0>(std::nullopt);
+                }
+            } else if (t_kill.is_number()) {
+                kill_p.emplace<2>(**t_kill.as_integer());
+#ifdef _WIN32
+                spdlog::info(" kill: TerminateProcess");
+#else
+                spdlog::info(" kill: signal {}", **t_kill.as_integer());
+#endif
+            } else if (t_kill.is_table()) {
+                auto tb_kill = *t_kill.as_table();
+                auto t_exec = tb_kill[toml::path("exec")];
+                if (t_exec.is_string()) {
+                    kill_p.emplace<1>(
+                        parseTomlProcess(tb_kill, start_p->name + "/kill"));
+                } else {
+                    spdlog::error("Error reading 'kill'");
+                    std::exit(1);
+                }
+            } else {
+                spdlog::error("Error reading 'kill'");
+                std::exit(1);
+            }
+        }
+
+        auto cmd = std::make_shared<Command>(start_p, stop_p, kill_p);
         cmd->initFunc(wcli);
         commands.push_back(cmd);
     }
     return commands;
 }
 
-void launcherLoop(WebCFace::Client &wcli,
+void launcherLoop(webcface::Client &wcli,
                   const std::vector<std::shared_ptr<Command>> &commands) {
     auto v = wcli.view("launcher");
     for (auto c : commands) {
-        v << c->start_p->name << " ";
-        auto start = webcface::button("start", c->start_f);
-        auto stop = webcface::button("stop", c->stop_f);
-        if (c->start_p->is_running()) {
-            // todo: button.disable がほしい
-            start.bgColor(WebCFace::ViewColor::gray);
-            stop.bgColor(WebCFace::ViewColor::orange);
-        } else {
-            start.bgColor(WebCFace::ViewColor::green);
-            stop.bgColor(WebCFace::ViewColor::gray);
-        }
-        v << start;
-        if (c->stop_p.index() != 0) {
-            v << stop;
-        }
-        if (!c->start_p->is_running() && c->start_p->exit_status != 0) {
-            v << webcface::text("(" + std::to_string(c->start_p->exit_status) +
-                                ") ")
-                     .textColor(WebCFace::ViewColor::red);
-        }
-        if (!c->start_p->is_running() &&
-            (c->start_p->exit_status != 0 ||
-             c->start_p->capture_stdout == CaptureMode::always)) {
-            std::string logs = c->start_p->logs;
-            if (!logs.empty()) {
-                v << webcface::button("Clear Logs",
-                                      [c] { c->start_p->logs.clear(); })
-                         .bgColor(webcface::ViewColor::cyan)
-                  << std::endl;
-                for (int i;
-                     (i = logs.find_first_of("\n")) != std::string::npos;) {
-                    v << "　　" << logs.substr(0, i) << std::endl;
-                    logs = logs.substr(i + 1);
-                }
-                if (!logs.empty()) {
-                    v << "　　" << logs << std::endl;
-                }
-            } else {
-                v << std::endl;
-            }
-        } else {
-            v << std::endl;
-        }
+        c->update(wcli);
+        c->updateView(v);
     }
     v.sync();
     wcli.sync();

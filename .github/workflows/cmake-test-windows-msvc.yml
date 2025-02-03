@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: download latest webcface
       run: |
-        Invoke-WebRequest https://github.com/na-trium-144/webcface/releases/download/v2.0.1/libwebcface-windows-x64.zip -OutFile webcface.zip
+        Invoke-WebRequest https://github.com/na-trium-144/webcface/releases/download/v2.7.0/libwebcface-windows-x64.zip -OutFile webcface.zip
         Expand-Archive -Path webcface.zip -DestinationPath webcface
         Remove-Item webcface.zip
     - name: Add webcface to path

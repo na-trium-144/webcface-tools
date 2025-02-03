@@ -71,7 +71,7 @@ void ViewUIContainer::updateLayout() {
             break;
         case webcface::ViewComponentType::button: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = buttonComponent(cp);
             }
@@ -82,7 +82,7 @@ void ViewUIContainer::updateLayout() {
         case webcface::ViewComponentType::decimal_input:
         case webcface::ViewComponentType::number_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = inputComponent(cp);
             }
@@ -91,7 +91,7 @@ void ViewUIContainer::updateLayout() {
         }
         case webcface::ViewComponentType::select_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = dropdownComponent(cp);
             }
@@ -100,7 +100,7 @@ void ViewUIContainer::updateLayout() {
         }
         case webcface::ViewComponentType::toggle_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = toggleComponent(cp);
             }
@@ -109,7 +109,7 @@ void ViewUIContainer::updateLayout() {
         }
         case webcface::ViewComponentType::slider_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = sliderComponent(cp);
             }
@@ -118,7 +118,7 @@ void ViewUIContainer::updateLayout() {
         }
         case webcface::ViewComponentType::check_input: {
             ftxui::Component ui_cp = this->ui_components[cp.id()];
-            if (!ui_cp && cp != this->prev_components[cp.id()]) {
+            if (!ui_cp || cp != this->prev_components[cp.id()]) {
                 this->prev_components[cp.id()] = cp;
                 this->ui_components[cp.id()] = ui_cp = checkComponent(cp);
             }
@@ -142,12 +142,15 @@ ViewUIContainer::buttonComponent(const webcface::ViewComponent &cp) const {
         convertColor(cp.textColor(), webcface::ViewColor::black, light),
         convertColor(cp.bgColor(), webcface::ViewColor::green, light, true),
         convertColor(cp.textColor(), webcface::ViewColor::black, light));
-    option.transform = [](const ftxui::EntryState &s) {
-        if (s.focused) {
-            return ftxui::text("(" + s.label + ")") | ftxui::bold;
-        } else {
-            return ftxui::text("(" + s.label + ")");
-        }
+    option.transform = [cp](const ftxui::EntryState &s) {
+        return ftxui::text("(" + s.label + ")") |
+               (s.focused ? ftxui::bold : ftxui::nothing) |
+               (cp.width() > 0
+                    ? ftxui::size(ftxui::WIDTH, ftxui::EQUAL, cp.width() * 2)
+                    : ftxui::nothing) |
+               (cp.height() > 0
+                    ? ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, cp.height())
+                    : ftxui::nothing);
     };
     return ftxui::Button(
         cp.text(),
@@ -172,7 +175,7 @@ ViewUIContainer::inputComponent(const webcface::ViewComponent &cp) const {
     auto is_error = std::make_shared<bool>(false);
     ftxui::InputOption option{};
     option.content = ftxui::StringRef(content_ref.get());
-    option.multiline = false;
+    option.multiline = cp.height() >= 2;
     option.on_change = [cp, is_error, content_ref] {
         *is_error = true;
         switch (cp.type()) {
@@ -229,8 +232,8 @@ ViewUIContainer::inputComponent(const webcface::ViewComponent &cp) const {
             }
         };
     }
-    option.transform = [content_ref, bind_ref, is_error,
-                        light = this->light](ftxui::InputState state) {
+    option.transform = [content_ref, bind_ref, is_error, light = this->light,
+                        cp](ftxui::InputState state) {
         state.element = ftxui::hbox({
             ftxui::text("["),
             state.element | (state.focused ? ftxui::bold : ftxui::nothing) |
@@ -244,15 +247,23 @@ ViewUIContainer::inputComponent(const webcface::ViewComponent &cp) const {
             state.element |= ftxui::bgcolor(
                 convertColor(webcface::ViewColor::white, light, state.hovered));
         }
+        if (cp.width() > 0) {
+            state.element |=
+                ftxui::size(ftxui::WIDTH, ftxui::EQUAL, cp.width() * 2);
+        } else {
+            state.element |= ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 10);
+        }
+        if (cp.height() > 0) {
+            state.element |=
+                ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, cp.height());
+        }
         if (!state.focused) {
             *content_ref = *bind_ref;
         }
         return state.element;
     };
     auto ui_input = ftxui::Input(option);
-    return ftxui::Renderer(ui_input, [ui_input] {
-        return ui_input->Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 10);
-    });
+    return ftxui::Renderer(ui_input, [ui_input] { return ui_input->Render(); });
 }
 
 ftxui::Component
