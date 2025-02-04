@@ -1,6 +1,9 @@
 tools_joystick = executable('webcface-joystick',
   sources: [
     'main.cc',
+    'list.cc',
+    'select.cc',
+    'joystick.cc',
   ],
   dependencies: [
     webcface_dep,
