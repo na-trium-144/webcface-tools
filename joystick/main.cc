@@ -3,9 +3,15 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <webcface/text.h>
+#include <fmt/ranges.h>
 #include "../common/common.h"
 #include "../common/logger_sink.h"
 #include "main.h"
+
+#ifndef SPDLOG_FMT_EXTERNAL
+#error                                                                         \
+    "SPDLOG_FMT_EXTERNAL must be enabled. Clear the build directory and try again."
+#endif
 
 int main(int argc, char *argv[]) {
     CLI::App app{TOOLS_VERSION_DISP("WebCFace Joystick")};
@@ -67,23 +73,51 @@ int main(int argc, char *argv[]) {
     }
 
     SDL_ClearError();
-    SDL_Joystick *joystick = SDL_JoystickOpen(*j_index);
-    if (!joystick) {
-        logger->error("Error in SDL_JoystickOpen: {}", SDL_GetError());
-        return 1;
+    SDL_GameController *gamecon = SDL_GameControllerOpen(*j_index);
+    SDL_Joystick *joystick;
+    if (gamecon) {
+        joystick = SDL_GameControllerGetJoystick(gamecon);
+    } else {
+        // logger->warn("Error in SDL_GameControllerOpen: {}", SDL_GetError());
+        joystick = SDL_JoystickOpen(*j_index);
+        if (!joystick) {
+            logger->error("Error in SDL_JoystickOpen: {}", SDL_GetError());
+            return 1;
+        }
     }
+
     SDL_ClearError();
     const char *name = SDL_JoystickNameForIndex(*j_index);
-    if(name){
+    if (name) {
         logger->info("Name: {}", name);
         wcli.text("name") = name;
-    }else{
+    } else {
         logger->warn("Failed to get name of joystick: {}", SDL_GetError());
     }
     logger->info("Type: {}",
-                 getJoystickTypeName(SDL_JoystickGetDeviceType(*j_index)));
+                 getTypeName(SDL_JoystickGetDeviceType(*j_index),
+                             SDL_GameControllerTypeForIndex(*j_index)));
 
     SDL_JoystickEventState(SDL_IGNORE);
+
+    if (gamecon) {
+        std::vector<const char *> button_names, axis_names;
+        for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++) {
+            auto b = static_cast<SDL_GameControllerButton>(i);
+            if (SDL_GameControllerHasButton(gamecon, b)) {
+                button_names.push_back(SDL_GameControllerGetStringForButton(b));
+            }
+        }
+        for (int i = 0; i < SDL_CONTROLLER_AXIS_MAX; i++) {
+            auto a = static_cast<SDL_GameControllerAxis>(i);
+            if (SDL_GameControllerHasAxis(gamecon, a)) {
+                axis_names.push_back(SDL_GameControllerGetStringForAxis(a));
+            }
+        }
+        logger->info("Avaliable game_buttons: {}",
+                     fmt::join(button_names, ", "));
+        logger->info("Avaliable game_axes: {}", fmt::join(axis_names, ", "));
+    }
 
     buttons_state.resize(SDL_JoystickNumButtons(joystick));
     logger->info("Number of buttons: {}", buttons_state.size());
@@ -96,7 +130,7 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         SDL_JoystickUpdate();
-        readJoystick(wcli, joystick);
+        readJoystick(wcli, gamecon, joystick);
 
         wcli.sync();
         SDL_Event event;

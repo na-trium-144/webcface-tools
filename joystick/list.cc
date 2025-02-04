@@ -22,24 +22,56 @@ void listJoySticks() {
         }
     }
     std::cout << "GUID" << std::string(32 - 4 + 1, ' ') << "Type"
-              << std::string(14 - 4 + 1, ' ') << "Name" << std::endl;
+              << std::string(len_type_max - 4 + 1, ' ') << "Name" << std::endl;
     for (int n = 0; n < joystick_num; n++) {
         char guid_buf[33];
         SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(n), guid_buf,
                                   sizeof(guid_buf));
-        std::cout << std::setw(32) << guid_buf << " " << std::setw(14)
-                  << getJoystickTypeName(SDL_JoystickGetDeviceType(n)) << " "
-                  << names[n] << std::endl;
+        std::cout << std::left << std::setw(32) << guid_buf << " ";
+        std::cout << std::left << std::setw(len_type_max)
+                  << getTypeName(SDL_JoystickGetDeviceType(n),
+                                 SDL_GameControllerTypeForIndex(n))
+                  << " ";
+        std::cout << names[n] << std::endl;
     }
 }
 
-std::string getJoystickTypeName(SDL_JoystickType type) {
+std::string getTypeName(SDL_JoystickType type,
+                        SDL_GameControllerType gamecon_type) {
     switch (type) {
+    case SDL_JOYSTICK_TYPE_GAMECONTROLLER:
+        switch (gamecon_type) {
+        case SDL_CONTROLLER_TYPE_UNKNOWN:
+            static_assert(
+                sizeof("UNKNOWN GAMECONTROLLER") <= len_type_max,
+                "len_type_max is smaller than sizeof UNKNOWN GAMECONTROLER");
+            return "UNKNOWN GAMECONTROLLER";
+#define define_gamecon_type(e, TYPE)                                           \
+    case static_cast<SDL_GameControllerType>(e):                               \
+        static_assert(sizeof(#TYPE) <= len_type_max + 1,                       \
+                      "len_type_max is smaller than sizeof " #TYPE);           \
+        return #TYPE;
+            define_gamecon_type(1, XBOX360);
+            define_gamecon_type(2, XBOXONE);
+            define_gamecon_type(3, PS3);
+            define_gamecon_type(4, PS4);
+            define_gamecon_type(5, NINTENDO_SWITCH_PRO);
+            define_gamecon_type(6, VIRTUAL);
+            define_gamecon_type(7, PS5);
+            define_gamecon_type(8, AMAZON_LUNA);
+            define_gamecon_type(9, GOOGLE_STADIA);
+            define_gamecon_type(10, NVIDIA_SHIELD);
+            define_gamecon_type(11, NINTENDO_SWITCH_JOYCON_LEFT);
+            define_gamecon_type(12, NINTENDO_SWITCH_JOYCON_RIGHT);
+            define_gamecon_type(13, NINTENDO_SWITCH_JOYCON_PAIR);
+        default:
+            return "GAMECONTROLLER " + std::to_string(static_cast<int>(type));
+        }
+
 #define define_joystick_type(TYPE)                                             \
     case SDL_JOYSTICK_TYPE_##TYPE:                                             \
         return #TYPE;
         define_joystick_type(UNKNOWN);
-        define_joystick_type(GAMECONTROLLER);
         define_joystick_type(WHEEL);
         define_joystick_type(ARCADE_STICK);
         define_joystick_type(FLIGHT_STICK);

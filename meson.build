@@ -7,6 +7,16 @@ project('webcface-tools', 'cpp',
     'warning_level=3',
     # 'werror=true',
     'cpp_std=gnu++17,c++17', # spdlogがgnu++必要、webcfaceは17以上必須
+
+    'fmt:default_library=static',
+    'spdlog:tests=disabled',
+    'spdlog:compile_library=true',
+    'spdlog:default_library=static',
+    'spdlog:external_fmt=enabled',
+    'spdlog:std_format=disabled',
+    'tomlplusplus:compile_library=false',
+    'sdl2:test=false',
+    'sdl2:default_library=static',
   ],
 )
 cxx = meson.get_compiler('cpp')
@@ -46,13 +56,14 @@ if cxx.get_argument_syntax() == 'msvc'
 endif
 
 webcface_dep = dependency('webcface', version: '>=2.7.0')
-spdlog_dep = dependency('spdlog')
+fmt_dep = dependency('fmt')
+if fmt_dep.type_name() == 'internal'
+  spdlog_dep = subproject('spdlog').get_variable('spdlog_dep')
+else
+  spdlog_dep = dependency('spdlog')
+endif
 tiny_process_library_dep = dependency('tiny-process-library')
-tomlplusplus_dep = dependency('tomlplusplus',
-  default_options: [
-    'compile_library=false',
-  ],
-)
+tomlplusplus_dep = dependency('tomlplusplus')
 cli11_dep = dependency('cli11', 'CLI11')
 ftxui_screen_dep = dependency('ftxui',
   method: 'cmake',
@@ -73,10 +84,6 @@ sdl2_dep = dependency('sdl2',
   method: 'cmake',
   modules: ['SDL2::SDL2'],
   fallback: ['sdl2', 'sdl2_dep'],
-  default_options: [
-    'test=false',
-    'default_library=static',
-  ],
 )
 sdl2main_dep = dependency('sdl2',
   method: 'cmake',
