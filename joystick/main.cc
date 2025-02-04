@@ -55,7 +55,7 @@ extern "C" int main(int argc, char *argv[]) {
     CLI11_PARSE(app, argc, argv);
 
     webcface::Client wcli(wcli_name, wcli_host, wcli_port);
-    wcli.waitConnection();
+    wcli.start();
 
     auto logger = std::make_shared<spdlog::logger>("webcface-joystick");
     logger->sinks() = {std::make_shared<spdlog::sinks::stderr_color_sink_mt>(),
@@ -96,17 +96,13 @@ extern "C" int main(int argc, char *argv[]) {
                 max_name_len = name_len;
             }
         }
-        std::size_t max_index_len =
-            1 + static_cast<std::size_t>(std::log10(joystick_num));
-        std::cout << std::string(max_index_len + 1, ' ') << "GUID"
-                  << std::string(32 - 4 + 1, ' ') << "Type"
+        std::cout << "GUID" << std::string(32 - 4 + 1, ' ') << "Type"
                   << std::string(14 - 4 + 1, ' ') << "Name" << std::endl;
         for (int n = 0; n < joystick_num; n++) {
             char guid_buf[33];
             SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(n), guid_buf,
                                       sizeof(guid_buf));
-            std::cout << std::setw(max_index_len) << n << " " << std::setw(32)
-                      << guid_buf << " " << std::setw(14)
+            std::cout << std::setw(32) << guid_buf << " " << std::setw(14)
                       << getJoystickTypeName(SDL_JoystickGetDeviceType(n))
                       << " " << names[n] << std::endl;
         }
@@ -166,26 +162,79 @@ extern "C" int main(int argc, char *argv[]) {
 
     SDL_JoystickEventState(SDL_IGNORE);
 
+    std::vector<int> buttons_state(SDL_JoystickNumButtons(joystick));
+    logger->info("Number of buttons: {}", buttons_state.size());
+    std::vector<int> axes_state(SDL_JoystickNumAxes(joystick));
+    logger->info("Number of axes: {}", axes_state.size());
+    std::vector<int> hats_state(SDL_JoystickNumHats(joystick) * 4);
+    logger->info("Number of hats: {}", hats_state.size());
+    std::vector<int> balls_state(SDL_JoystickNumBalls(joystick) * 2);
+    logger->info("Number of balls: {}", balls_state.size());
+
     while (true) {
         SDL_JoystickUpdate();
-        int buttons_num = SDL_JoystickNumButtons(joystick);
+        if (buttons_state.size() != SDL_JoystickNumButtons(joystick)) {
+            buttons_state.resize(SDL_JoystickNumButtons(joystick));
+            logger->info("Number of buttons changed: {}", buttons_state.size());
+        }
         auto buttons = wcli.value("buttons").resize(0);
-        for (int i = 0; i < buttons_num; i++) {
-            buttons.push_back(SDL_JoystickGetButton(joystick, i));
+        for (int i = 0; i < buttons_state.size(); i++) {
+            auto button = SDL_JoystickGetButton(joystick, i);
+            if (buttons_state[i] != button) {
+                buttons_state[i] = button;
+                logger->info("Button {}: {}", i, button);
+            }
+            buttons.push_back(button);
         }
-        int axes_num = SDL_JoystickNumAxes(joystick);
+        if (axes_state.size() != SDL_JoystickNumAxes(joystick)) {
+            axes_state.resize(SDL_JoystickNumAxes(joystick));
+            logger->info("Number of axes changed: {}", axes_state.size());
+        }
         auto axes = wcli.value("axes").resize(0);
-        for (int i = 0; i < axes_num; i++) {
-            axes.push_back(SDL_JoystickGetAxis(joystick, i));
+        for (int i = 0; i < axes_state.size(); i++) {
+            auto axis = SDL_JoystickGetAxis(joystick, i);
+            if (axes_state[i] != axis) {
+                axes_state[i] = axis;
+                logger->info("Axis {}: {}", i, axis);
+            }
+            axes.push_back(axis);
         }
-        int hats_num = SDL_JoystickNumHats(joystick);
+        if (hats_state.size() != SDL_JoystickNumHats(joystick) * 4) {
+            hats_state.resize(SDL_JoystickNumHats(joystick) * 4);
+            logger->info("Number of hats changed: {}", hats_state.size());
+        }
         auto hats = wcli.value("hats").resize(0);
-        for (int i = 0; i < hats_num; i++) {
-            int hat = SDL_JoystickGetHat(joystick, i);
-            hats.push_back(!!(hat & SDL_HAT_UP));
-            hats.push_back(!!(hat & SDL_HAT_DOWN));
-            hats.push_back(!!(hat & SDL_HAT_LEFT));
-            hats.push_back(!!(hat & SDL_HAT_RIGHT));
+        for (int i = 0; i < hats_state.size(); i += 4) {
+            int hat = SDL_JoystickGetHat(joystick, i / 4);
+            std::array<int, 4> hat_a = {
+                !!(hat & SDL_HAT_UP), !!(hat & SDL_HAT_DOWN),
+                !!(hat & SDL_HAT_LEFT), !!(hat & SDL_HAT_RIGHT)};
+            for (int j = 0; j < 4; j++) {
+                if (hats_state[i + j] != hat_a[j]) {
+                    hats_state[i + j] = hat_a[j];
+                    logger->info("Hat {}: {}", i + j, hat_a[j]);
+                }
+                hats.push_back(hat_a[j]);
+            }
+        }
+        if (balls_state.size() != SDL_JoystickNumBalls(joystick) * 2) {
+            balls_state.resize(SDL_JoystickNumBalls(joystick) * 2);
+            logger->info("Number of balls changed: {}", balls_state.size());
+        }
+        auto balls = wcli.value("balls").resize(0);
+        for (int i = 0; i < balls_state.size(); i += 2) {
+            int dx, dy;
+            auto ball = SDL_JoystickGetBall(joystick, i / 2, &dx, &dy);
+            if (balls_state[i] != dx) {
+                balls_state[i] = dx;
+                logger->info("Ball {}: {}", i, dx);
+            }
+            if (balls_state[i + 1] != dy) {
+                balls_state[i + 1] = dy;
+                logger->info("Ball {}: {}", i + 1, dy);
+            }
+            balls.push_back(dx);
+            balls.push_back(dy);
         }
         wcli.value("power") = SDL_JoystickCurrentPowerLevel(joystick);
 
