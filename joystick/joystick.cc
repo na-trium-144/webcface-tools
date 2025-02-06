@@ -18,7 +18,8 @@ void readJoystick(const webcface::Member &wcli, SDL_GameController *gamecon,
             auto a = static_cast<SDL_GameControllerAxis>(i);
             if (SDL_GameControllerHasAxis(gamecon, a)) {
                 g_axes.value(SDL_GameControllerGetStringForAxis(a)) =
-                    SDL_GameControllerGetAxis(gamecon, a);
+                    static_cast<double>(SDL_GameControllerGetAxis(gamecon, a)) /
+                    32768;
             }
         }
     }
@@ -43,7 +44,8 @@ void readJoystick(const webcface::Member &wcli, SDL_GameController *gamecon,
     }
     auto axes = wcli.value("axes").resize(0);
     for (int i = 0; i < axes_state.size(); i++) {
-        auto axis = SDL_JoystickGetAxis(joystick, i);
+        double axis =
+            static_cast<double>(SDL_JoystickGetAxis(joystick, i)) / 32768;
         if (axes_state[i] != axis) {
             axes_state[i] = axis;
             logger->info("Axis {}: {}", i, axis);
