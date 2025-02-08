@@ -46,9 +46,10 @@ void readJoystick(const webcface::Member &wcli, SDL_GameController *gamecon,
     for (int i = 0; i < axes_state.size(); i++) {
         double axis =
             static_cast<double>(SDL_JoystickGetAxis(joystick, i)) / 32768;
-        if (axes_state[i] != axis) {
-            axes_state[i] = axis;
-            logger->info("Axis {}: {}", i, axis);
+        int axis_int = static_cast<int>(axis * 100); // for displaying purpose
+        if (axes_state[i] != axis_int) {
+            axes_state[i] = axis_int;
+            logger->info("Axis {}: {:.2f}", i, axis);
         }
         axes.push_back(axis);
     }

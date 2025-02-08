@@ -3,7 +3,6 @@ project('webcface-tools', 'cpp',
   license: 'MIT',
   meson_version: '>=1.1',
   default_options: [
-    'buildtype=release',
     'warning_level=3',
     # 'werror=true',
     'cpp_std=gnu++17,c++17', # spdlogがgnu++必要、webcfaceは17以上必須
@@ -15,8 +14,10 @@ project('webcface-tools', 'cpp',
     'spdlog:external_fmt=enabled',
     'spdlog:std_format=disabled',
     'tomlplusplus:compile_library=false',
+    'ftxui:warning_level=0',
     'sdl2:test=false',
     'sdl2:default_library=static',
+    'sdl2:warning_level=0',
   ],
 )
 cxx = meson.get_compiler('cpp')
