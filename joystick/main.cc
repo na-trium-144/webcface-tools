@@ -28,12 +28,12 @@ int main(int argc, char *argv[]) {
     app.add_flag("-l,--list", list, "List information of connected joysticks");
 
     std::string id;
-    app.add_option("GUID", id, "Joystick GUID to use");
+    app.add_option("ID", id, "Joystick ID to use");
     std::size_t index = 0;
     app.add_option(
         "index", index,
-        "Joystick index, when there are multiple joystick with same GUID. "
-        "Specify number from 0 to (number of joysticks with same GUID) - 1.");
+        "Joystick index, when there are multiple joystick with same ID. "
+        "Specify number from 0 to (number of joysticks with same ID) - 1.");
 
     CLI11_PARSE(app, argc, argv);
 

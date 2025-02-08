@@ -21,19 +21,25 @@ void listJoySticks() {
             max_name_len = name_len;
         }
     }
-    std::cout << "GUID" << std::string(32 - 4 + 1, ' ') << "Type"
+    std::cout << "ID" << std::string(9 - 2 + 1, ' ') << "Type"
               << std::string(len_type_max - 4 + 1, ' ') << "Name" << std::endl;
     for (int n = 0; n < joystick_num; n++) {
-        char guid_buf[33];
-        SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(n), guid_buf,
-                                  sizeof(guid_buf));
-        std::cout << std::left << std::setw(32) << guid_buf << " ";
+        getVendorProduct(std::cout, n);
+        std::cout << " ";
         std::cout << std::left << std::setw(len_type_max)
                   << getTypeName(SDL_JoystickGetDeviceType(n),
                                  SDL_GameControllerTypeForIndex(n))
                   << " ";
         std::cout << names[n] << std::endl;
     }
+}
+
+void getVendorProduct(std::ostream &os, int n) {
+    os << std::setw(4) << std::setfill('0') << std::hex
+       << SDL_JoystickGetDeviceVendor(n) << "-";
+    os << std::setw(4) << std::setfill('0') << std::hex
+       << SDL_JoystickGetDeviceProduct(n);
+    os << std::dec << std::setfill(' ');
 }
 
 std::string getTypeName(SDL_JoystickType type,

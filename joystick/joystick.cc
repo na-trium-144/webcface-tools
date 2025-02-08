@@ -1,6 +1,14 @@
+#ifdef max
+#undef max
+#endif
 #include "main.h"
 #include <webcface/text.h>
 #include <webcface/value.h>
+#include <algorithm>
+
+constexpr double SDL_AXIS_ABSMAX =
+    std::max(static_cast<double>(SDL_JOYSTICK_AXIS_MAX),
+             -static_cast<double>(SDL_JOYSTICK_AXIS_MIN));
 
 void readJoystick(const webcface::Member &wcli, SDL_GameController *gamecon,
                   SDL_Joystick *joystick) {
@@ -44,8 +52,8 @@ void readJoystick(const webcface::Member &wcli, SDL_GameController *gamecon,
     }
     auto axes = wcli.value("axes").resize(0);
     for (int i = 0; i < axes_state.size(); i++) {
-        double axis =
-            static_cast<double>(SDL_JoystickGetAxis(joystick, i)) / 32768;
+        double axis = static_cast<double>(SDL_JoystickGetAxis(joystick, i)) /
+                      SDL_AXIS_ABSMAX;
         int axis_int = static_cast<int>(axis * 100); // for displaying purpose
         if (axes_state[i] != axis_int) {
             axes_state[i] = axis_int;
