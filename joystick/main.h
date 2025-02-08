@@ -3,7 +3,6 @@
 #include <vector>
 #include <spdlog/logger.h>
 #include <webcface/member.h>
-#define SDL_MAIN_HANDLED
 #include <SDL.h>
 
 inline std::shared_ptr<spdlog::logger> logger;
