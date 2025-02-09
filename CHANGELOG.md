@@ -1,3 +1,12 @@
+## [2.3.0] - 2025-02-09
+### Added
+* webcface-joystick (#43)
+### Changed
+* subprojectにsdl2とfmt追加
+* default_optionsのbuildtype=releaseを消した
+### Fixed
+* MSVC,MinGWでのコンパイルエラーを修正
+
 ## [2.2.0] - 2025-01-17
 ### Added
 * webcface-notepad (#56)
