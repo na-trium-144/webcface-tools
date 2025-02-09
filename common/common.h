@@ -1,7 +1,7 @@
 #pragma once
 #define TOOLS_VERSION_DISP(name) name " (webcface-tools " TOOLS_VERSION ")"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <string>
 

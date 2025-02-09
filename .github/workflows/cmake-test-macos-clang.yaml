@@ -15,7 +15,6 @@ jobs:
         curl -LO https://github.com/na-trium-144/webcface/releases/download/v2.7.0/libwebcface-macos-universal.zip
         sudo unzip libwebcface-macos-universal.zip -d /opt/webcface
         rm libwebcface-macos-universal.zip
-
     - uses: actions/checkout@v4
     - name: Install meson
       run: |
