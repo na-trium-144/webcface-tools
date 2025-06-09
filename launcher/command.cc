@@ -24,21 +24,54 @@ void Process::readLog(const char *bytes, std::size_t n, bool is_stderr) {
     logs.append(bytes, n);
 #endif
     // 改行で区切り、出力
-    while (logs.find('\n') != std::string_view::npos) {
-        auto ln_pos = logs.find('\n');
-        auto logs_line = std::string_view(logs).substr(0, ln_pos);
-        if (is_stderr) {
-            this->logger->warn("{}", logs_line);
+    for (std::size_t i = 0; i < logs.size();) {
+        bool is_separator = false;
+        std::size_t separator_end;
+        if (logs[i] == '\r') {
+            is_separator = true;
+            if (i + 1 < logs.size() && logs[i + 1] == '\n') {
+                separator_end = i + 2;
+            } else {
+                separator_end = i + 1;
+            }
+        } else if (logs[i] == '\n') {
+            is_separator = true;
+            separator_end = i + 1;
+        } else if (logs[i] == 033) { // ANSI escape code
+            for (std::size_t j = i + 1; j < logs.size(); ++j) {
+                if (logs[j] == '[' || std::isdigit(logs[j]) || logs[j] == ';') {
+                    continue;
+                } else if (std::isalpha(logs[j])) {
+                    // https://gist.github.com/ConnerWill/d4b6c776b509add763e17f9f113fd25b
+                    // カーソル移動系のコードを検出
+                    is_separator =
+                        (std::string_view("ABCDEFGHJKfuhl").find(logs[j]) !=
+                         std::string_view::npos);
+                    separator_end = j + 1;
+                    break;
+                } else {
+                    // unknown
+                    break;
+                }
+            }
+        }
+        if (is_separator) {
+            auto logs_line = std::string_view(logs).substr(0, i);
+            if (is_stderr) {
+                this->logger->warn("{}", logs_line);
+            } else {
+                this->logger->info("{}", logs_line);
+            }
+            if (this->send_logs.has_value()) {
+                this->send_logs->append(is_stderr ? webcface::level::warn
+                                                  : webcface::level::info,
+                                        logs_line);
+            }
+            logs = logs.substr(separator_end);
+            i = 0;
         } else {
-            this->logger->info("{}", logs_line);
+            ++i;
         }
-        if (this->send_logs.has_value()) {
-            this->send_logs->append(is_stderr ? webcface::level::warn
-                                              : webcface::level::info,
-                                    logs_line);
-        }
-
-        logs = logs.substr(ln_pos + 1);
     }
 }
 void Process::start() {
