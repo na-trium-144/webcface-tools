@@ -1,6 +1,7 @@
 #include <webcface/log.h>
 #include <webcface/client.h>
 #include <spdlog/sinks/base_sink.h>
+#include <mutex>
 
 class LoggerSink final : public spdlog::sinks::base_sink<std::mutex> {
     webcface::Log wcli_log;

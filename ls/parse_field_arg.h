@@ -1,6 +1,7 @@
 #pragma once
 #include "./main.h"
 #include "webcface/client.h"
+#include <algorithm>
 #include <ftxui/dom/elements.hpp>
 #include <iostream>
 
