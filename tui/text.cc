@@ -11,11 +11,11 @@ ftxui::Component textComponent(const webcface::Text &text,
             *help = defaultStatus();
         }
         return ftxui::hbox({
-                   ftxui::text(text.member().name()),
+                   ftxui::text(std::string(text.member().name())),
                    ftxui::text(":"),
-                   ftxui::text(text.name()),
+                   ftxui::text(std::string(text.name())),
                    ftxui::text(" = "),
-                   ftxui::text(text.get()) |
+                   ftxui::text(std::string(text.get())) |
                        (focused ? ftxui::bold : ftxui::nothing) | ftxui::xflex,
                }) |
                ftxui::xflex | (focused ? ftxui::focus : ftxui::nothing);

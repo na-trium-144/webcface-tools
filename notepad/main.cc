@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
                    "Server port (default: " WEBCFACE_DEFAULT_PORT_S ")");
     app.add_option("-m,--member", wcli_name, "Client member name");
 
-    std::array<int, 2> size = {30, 10};
-    app.add_option("-s,--size", size, "Width and height of image");
+    std::vector<int> size = {30, 10};
+    app.add_option("-s,--size", size, "Width and height of image")->expected(2);
 
     std::string filename;
     app.add_option("filename", filename, "File path");

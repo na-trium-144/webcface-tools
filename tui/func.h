@@ -9,7 +9,8 @@ template <typename... Args>
 inline void runAsync(const webcface::Func &func,
                      std::shared_ptr<ftxui::Element> result, Args &&...args) {
     auto res = func.runAsync(args...);
-    auto name = func.member().name() + ":" + func.name();
+    auto name =
+        std::string(func.member().name()) + ":" + std::string(func.name());
     using namespace std::string_literals;
     auto num = ftxui::hbox({
         ftxui::text("["),
@@ -48,7 +49,8 @@ inline void runAsync(const webcface::Func &func,
         } else {
             *result = ftxui::hbox({
                 num,
-                ftxui::text("Error: "s + res.rejection() + " (" + name + ")") |
+                ftxui::text("Error: "s + std::string(res.rejection()) + " (" +
+                            name + ")") |
                     ftxui::color(ftxui::Color::Red),
             });
         }

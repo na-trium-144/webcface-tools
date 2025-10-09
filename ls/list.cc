@@ -91,7 +91,7 @@ fieldInfo(const webcface::Member &m, const std::string &field_prefix,
                     fn_args.push_back(ftxui::text(", "));
                 }
                 if (!a.name().empty()) {
-                    fn_args.push_back(ftxui::text(a.name()));
+                    fn_args.push_back(ftxui::text(std::string(a.name())));
                     fn_args.push_back(ftxui::text(": ") | ftxui::dim);
                 }
                 switch (a.type()) {
