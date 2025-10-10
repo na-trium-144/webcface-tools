@@ -122,7 +122,7 @@ std::vector<std::shared_ptr<Command>> parseToml(webcface::Client &wcli,
     auto config_commands = config["command"].as_array();
     for (auto &&config_node : *config_commands) {
         auto start_p = parseTomlProcess(config_node, "");
-        start_p->send_logs = wcli.log(start_p->name);
+        start_p->send_logs = wcli.log(start_p->name + ".log");
 
         Command::StopOption stop_p = 2;
         auto t_stop = config_node[toml::path("stop")];

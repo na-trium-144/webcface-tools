@@ -28,7 +28,7 @@ findFields(const webcface::Member &m, const std::string &field_prefix,
     std::multimap<std::string, ftxui::Element> elem_fields;
     std::unordered_set<std::string> folders;
     auto check_field_name = [&](const auto &v, const auto &renderer) {
-        std::string name = v.name();
+        std::string name{v.name()};
         if (!field_prefix.empty()) {
             if (name.substr(0, field_prefix.size() + 1) == field_prefix + ".") {
                 name = name.substr(field_prefix.size() + 1);

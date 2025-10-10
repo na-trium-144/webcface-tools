@@ -11,9 +11,9 @@ ftxui::Component valueComponent(const webcface::Value &value,
             *help = defaultStatus();
         }
         return ftxui::hbox({
-                   ftxui::text(value.member().name()),
+                   ftxui::text(std::string(value.member().name())),
                    ftxui::text(":"),
-                   ftxui::text(value.name()),
+                   ftxui::text(std::string(value.name())),
                    ftxui::text(" = "),
                    ftxui::text(std::to_string(value.get())) |
                        (focused ? ftxui::bold : ftxui::nothing) | ftxui::xflex,

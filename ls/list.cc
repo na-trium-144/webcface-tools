@@ -91,26 +91,11 @@ fieldInfo(const webcface::Member &m, const std::string &field_prefix,
                     fn_args.push_back(ftxui::text(", "));
                 }
                 if (!a.name().empty()) {
-                    fn_args.push_back(ftxui::text(a.name()));
+                    fn_args.push_back(ftxui::text(std::string(a.name())));
                     fn_args.push_back(ftxui::text(": ") | ftxui::dim);
                 }
-                switch (a.type()) {
-                case webcface::ValType::int_:
-                    fn_args.push_back(ftxui::text("int") | ftxui::dim);
-                    break;
-                case webcface::ValType::float_:
-                    fn_args.push_back(ftxui::text("float") | ftxui::dim);
-                    break;
-                case webcface::ValType::bool_:
-                    fn_args.push_back(ftxui::text("bool") | ftxui::dim);
-                    break;
-                case webcface::ValType::string_:
-                    fn_args.push_back(ftxui::text("str") | ftxui::dim);
-                    break;
-                default:
-                    fn_args.push_back(ftxui::text("?") | ftxui::dim);
-                    break;
-                }
+                fn_args.push_back(ftxui::text(webcface::valTypeStr(a.type())) |
+                                  ftxui::dim);
             }
             return ftxui::hbox({
                 ftxui::text("[fn]") | ftxui::dim,
@@ -119,6 +104,8 @@ fieldInfo(const webcface::Member &m, const std::string &field_prefix,
                 ftxui::text("("),
                 ftxui::hbox(fn_args),
                 ftxui::text(")"),
+                ftxui::text(" -> ") | ftxui::dim,
+                ftxui::text(webcface::valTypeStr(v.returnType())) | ftxui::dim,
             });
         },
         [&](const std::string &name, auto &v) {

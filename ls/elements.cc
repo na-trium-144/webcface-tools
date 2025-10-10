@@ -1,7 +1,7 @@
 #include "./main.h"
 
 ftxui::Element elemMember(const webcface::Member &m) {
-    return ftxui::text(m.name()) |
+    return ftxui::text(std::string(m.name())) |
            (m.pingStatus() ? ftxui::bold : ftxui::nothing);
 }
 
