@@ -472,7 +472,7 @@ ViewUIContainer::RenderCol(const std::vector<ftxui::Element> &elements_col,
     }
 }
 
-ftxui::Element ViewUIContainer::Render() {
+ftxui::Element ViewUIContainer::OnRender() {
     if (this->Focused()) {
         *help = defaultStatus();
     }

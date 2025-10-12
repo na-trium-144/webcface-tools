@@ -15,6 +15,7 @@ project('webcface-tools', 'cpp',
     'spdlog:std_format=disabled',
     'tomlplusplus:compile_library=false',
     'ftxui:warning_level=0',
+    'ftxui:examples=disabled',
     'sdl2:test=false',
     'sdl2:default_library=static',
     'sdl2:warning_level=0',
@@ -67,16 +68,19 @@ tiny_process_library_dep = dependency('tiny-process-library')
 tomlplusplus_dep = dependency('tomlplusplus')
 cli11_dep = dependency('cli11', 'CLI11')
 ftxui_screen_dep = dependency('ftxui',
+  version: '>=6.0.0',
   method: 'cmake',
   modules: ['ftxui::screen'],
   fallback: ['ftxui', 'screen_dep'],
 )
 ftxui_dom_dep = dependency('ftxui',
+  version: '>=6.0.0',
   method: 'cmake',
   modules: ['ftxui::dom'],
   fallback: ['ftxui', 'dom_dep'],
 )
 ftxui_component_dep = dependency('ftxui',
+  version: '>=6.0.0',
   method: 'cmake',
   modules: ['ftxui::component'],
   fallback: ['ftxui', 'component_dep'],
@@ -84,12 +88,6 @@ ftxui_component_dep = dependency('ftxui',
 sdl2_dep = dependency('sdl2',
   method: 'cmake',
   modules: ['SDL2::SDL2'],
-  fallback: ['sdl2', 'sdl2_dep'],
-)
-sdl2main_dep = dependency('sdl2',
-  method: 'cmake',
-  modules: ['SDL2::SDL2main'],
-  fallback: ['sdl2', 'sdl2main_dep'],
 )
 
 subdir('launcher')
