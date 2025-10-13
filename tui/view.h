@@ -45,7 +45,7 @@ class ViewUIContainer : public ftxui::ComponentBase {
     ftxui::Element RenderCol(const std::vector<ftxui::Element> &elements_col,
                              std::size_t current_row) const;
     // renderする (childrenのレイアウトは無視)
-    ftxui::Element Render() override;
+    ftxui::Element OnRender() override;
 };
 
 ftxui::Component viewComponent(const webcface::View &view,
