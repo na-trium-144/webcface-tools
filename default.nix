@@ -24,7 +24,7 @@ let
 in
 pkgs.stdenv.mkDerivation rec {
   pname = "webcface-tools";
-  version = "3.0.0";
+  version = "3.0.1";
 
   src = ./.;
   sourceRoot = pname;
